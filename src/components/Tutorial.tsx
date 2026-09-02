@@ -7,7 +7,7 @@ const STEPS: { title: string; body: string }[] = [
   },
   {
     title: 'Set up the game',
-    body: 'Choose how many innings you are planning and which positions are on the field (nine fielders, or ten with a fourth outfielder).',
+    body: 'Pick the sport. Baseball plans innings with a batting order; soccer plans halves or quarters with formations like 7v7 or 11v11. Choose the game length and which positions are on the field, or tap a preset.',
   },
   {
     title: 'Pick the rules',
@@ -19,7 +19,7 @@ const STEPS: { title: string; body: string }[] = [
   },
   {
     title: 'Adjust by dragging',
-    body: 'Drag a name onto another to swap them. Drop it between two rows to slide it in and shift the others down. Drop a name onto a name in a different inning to trade those two players in both innings. Drag inning headers to reorder innings. On a phone, press and hold a name, then drag.',
+    body: 'Drag a name onto another to swap them. Drop it between two rows to slide it in and shift the others down. Drop a name onto a name in a different inning or quarter to trade those two players in both. Drag the column headers to reorder. On a phone, press and hold a name, then drag.',
   },
   {
     title: 'Watch for warnings',
@@ -30,7 +30,7 @@ const STEPS: { title: string; body: string }[] = [
     body: 'Use the 🔒 on a name to keep that player where they are. Randomize lineup always leaves locked players in place and re-solves everyone else around them. Unlock all clears the locks.',
   },
   {
-    title: 'Batting order',
+    title: 'Batting order (baseball)',
     body: 'The batting order sits under the field table. Shuffle it, or drag names to swap or insert just like on the field. Lock a batter to keep them in their spot when you shuffle.',
   },
   {

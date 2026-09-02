@@ -1,7 +1,7 @@
 import type { AppState, ConstraintInstance, Inning, Player } from './types'
 import { normalizeConstraints } from './constraints'
 import { normalizeBattingOrder, normalizePlan } from './plan'
-import { DEFAULT_POSITIONS, INFIELD_POSITIONS, POSITION_CATALOG, sortPositions } from './positions'
+import { catalogFor, sortPositions, sportDef, type Sport } from './positions'
 
 export const STORAGE_KEY = 'little-league-planner:v1'
 export const TUTORIAL_KEY = 'little-league-planner:tutorial-seen'
@@ -22,13 +22,16 @@ export function markTutorialSeen(): void {
   }
 }
 
-export function defaultState(): AppState {
+export function defaultState(sport: Sport = 'baseball'): AppState {
+  const def = sportDef(sport)
   const base: AppState = {
     version: 1,
+    sport,
+    periodName: def.defaultPeriodName,
     gameTitle: '',
     players: [],
-    inningCount: 6,
-    positions: [...DEFAULT_POSITIONS],
+    inningCount: def.defaultPeriodCount,
+    positions: [...def.defaultPositions],
     constraints: [],
     preferences: [],
     plan: [],
@@ -42,7 +45,7 @@ export function defaultState(): AppState {
     id: 'c_infield_default',
     type: 'play-group-by-inning',
     enabled: false,
-    params: { positions: [...INFIELD_POSITIONS], times: 1, byInning: 4 },
+    params: { positions: [...def.defaultGroup], times: 1, byInning: 4 },
   })
   base.plan = normalizePlan(base)
   return base
@@ -50,10 +53,11 @@ export function defaultState(): AppState {
 
 /** Bring any shape of persisted/imported data into a valid AppState. */
 export function coerceState(raw: unknown): AppState {
-  const d = defaultState()
-  if (!raw || typeof raw !== 'object') return d
+  if (!raw || typeof raw !== 'object') return defaultState()
   const r = raw as Record<string, unknown>
-  const valid = new Set(POSITION_CATALOG.map((p) => p.id))
+  const sport: Sport = r.sport === 'soccer' ? 'soccer' : 'baseball'
+  const d = defaultState(sport)
+  const valid = new Set(catalogFor(sport).map((p) => p.id))
 
   const players: Player[] = Array.isArray(r.players)
     ? r.players
@@ -113,6 +117,8 @@ export function coerceState(raw: unknown): AppState {
 
   const state: AppState = {
     version: 1,
+    sport,
+    periodName: typeof r.periodName === 'string' && r.periodName.trim() ? r.periodName.trim().slice(0, 20) : d.periodName,
     gameTitle: typeof r.gameTitle === 'string' ? r.gameTitle : '',
     players,
     inningCount,

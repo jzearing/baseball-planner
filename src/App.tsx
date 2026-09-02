@@ -13,6 +13,7 @@ import { evaluateAll, makeContext } from './lib/constraints'
 import { planToCsv } from './lib/csv'
 import { renderPlanImage } from './lib/image'
 import { activePlayers } from './lib/plan'
+import { periodNoun, sportDef } from './lib/positions'
 import { decodeShareFragment, encodeShareFragment, shareUrl } from './lib/share'
 import { defaultState, downloadText, exportJson, loadState, markTutorialSeen, parseImport, saveState, tutorialSeen } from './lib/storage'
 import { reducer } from './state'
@@ -50,6 +51,8 @@ export default function App() {
   }, [violations])
 
   const hasPlan = state.plan.some((inn) => Object.values(inn.positions).some(Boolean))
+  const sport = sportDef(state.sport)
+  const period = periodNoun(state.periodName)
   const fixedCount = state.plan.reduce((n, inn) => n + inn.fixed.length, 0)
   const canSolve = activePlayers(state).length > 0
 
@@ -157,7 +160,7 @@ export default function App() {
               Help
             </button>
           </div>
-          <p className="muted small">Fielding rotations and batting order for youth baseball. Everything stays in your browser.</p>
+          <p className="muted small">Position rotations and lineups for youth baseball and soccer. Everything stays in your browser.</p>
         </header>
         <SettingsPanel state={state} dispatch={dispatch} />
         <RosterEditor players={state.players} dispatch={dispatch} />
@@ -211,15 +214,17 @@ export default function App() {
             <div className="plan-area">
               <FieldTable state={state} dispatch={dispatch} violations={violations} />
               <p className="hint muted small no-print">
-                Drag a name onto another to swap. Drop it between two rows to insert and shift the others down. Drop a name onto a name in another inning
-                to trade those two players in both innings. Drag inning headers to reorder. On a touch screen, press and hold a name, then drag. Lock a
-                player to keep them in place the next time you randomize.
+                Drag a name onto another to swap. Drop it between two rows to insert and shift the others down. Drop a name onto a name in another{' '}
+                {period.singular} to trade those two players in both {period.plural}. Drag {period.singular} headers to reorder. On a touch screen, press
+                and hold a name, then drag. Lock a player to keep them in place the next time you randomize.
               </p>
-              <ViolationList violations={violations} hasPlan={hasPlan} />
+              <ViolationList violations={violations} hasPlan={hasPlan} periodName={state.periodName} />
             </div>
-            <div className="batting-wrap">
-              <BattingOrder state={state} dispatch={dispatch} />
-            </div>
+            {sport.hasBattingOrder && (
+              <div className="batting-wrap">
+                <BattingOrder state={state} dispatch={dispatch} />
+              </div>
+            )}
           </>
         )}
       </main>

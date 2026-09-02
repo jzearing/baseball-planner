@@ -1,6 +1,6 @@
 import type { AppState, PlayerId, Violation } from '../lib/types'
 import { benchRowCount, columnList } from '../lib/plan'
-import { positionLabel } from '../lib/positions'
+import { periodNoun, periodTitle, positionLabel } from '../lib/positions'
 import type { Action } from '../state'
 import { dropAttrs, startDrag, useDropTarget } from './dnd'
 
@@ -34,7 +34,7 @@ export function FieldTable({ state, dispatch, violations }: Props) {
           <tr>
             <th className="label-col">Position</th>
             {state.plan.map((_, i) => (
-              <InningHeader key={i} index={i} dispatch={dispatch} />
+              <InningHeader key={i} index={i} periodName={state.periodName} dispatch={dispatch} />
             ))}
           </tr>
         </thead>
@@ -85,14 +85,14 @@ export function FieldTable({ state, dispatch, violations }: Props) {
   )
 }
 
-function InningHeader({ index, dispatch }: { index: number; dispatch: (a: Action) => void }) {
+function InningHeader({ index, periodName, dispatch }: { index: number; periodName: string; dispatch: (a: Action) => void }) {
   const target = { kind: 'inning', index } as const
   const { zone, ...handlers } = useDropTarget(target, dispatch)
   return (
     <th
       className={`inning-head${zone ? ` zone-${zone}` : ''}`}
       draggable
-      title="Drag to reorder innings: drop between headers to insert, on a header to swap"
+      title={`Drag to reorder ${periodNoun(periodName).plural}: drop between headers to insert, on a header to swap`}
       onDragStart={(e) => startDrag(e, target)}
       {...handlers}
       {...dropAttrs(target, true)}
@@ -100,7 +100,7 @@ function InningHeader({ index, dispatch }: { index: number; dispatch: (a: Action
       <span className="grip" aria-hidden>
         ⋮⋮
       </span>
-      Inning {index + 1}
+      {periodTitle(periodName, index)}
     </th>
   )
 }
