@@ -15,6 +15,8 @@ export function planToCsv(state: AppState): string {
   const columns = state.plan.map((inn) => columnList(inn, state.positions, benchRows))
   const labels = [...state.positions, ...Array(benchRows).fill('Bench')]
   labels.forEach((label, r) => rows.push([label, ...columns.map((col) => name(col[r] ?? null))]))
+  const absent = state.players.filter((p) => !p.active)
+  if (absent.length > 0) rows.push(['Absent', absent.map((p) => p.name).join(', ')])
   rows.push([])
   rows.push(['Batting order'])
   state.battingOrder.forEach((pid, i) => rows.push([String(i + 1), name(pid)]))

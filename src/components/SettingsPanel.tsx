@@ -1,4 +1,5 @@
 import type { AppState } from '../lib/types'
+import { benchRowCount } from '../lib/plan'
 import { POSITION_CATALOG } from '../lib/positions'
 import type { Action } from '../state'
 
@@ -39,7 +40,7 @@ export function SettingsPanel({ state, dispatch }: Props) {
           })}
         </div>
         <small className="muted">
-          {state.positions.length} fielders, {Math.max(0, state.players.length - state.positions.length)} on the bench each inning
+          {state.positions.length} fielders, {benchRowCount(state)} on the bench each inning
         </small>
       </div>
     </section>

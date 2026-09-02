@@ -1,7 +1,7 @@
 import type { AppState, ConstraintInstance, Inning, Player } from './types'
 import { normalizeConstraints } from './constraints'
 import { normalizeBattingOrder, normalizePlan } from './plan'
-import { DEFAULT_POSITIONS, POSITION_CATALOG, sortPositions } from './positions'
+import { DEFAULT_POSITIONS, INFIELD_POSITIONS, POSITION_CATALOG, sortPositions } from './positions'
 
 export const STORAGE_KEY = 'little-league-planner:v1'
 
@@ -23,7 +23,7 @@ export function defaultState(): AppState {
     id: 'c_infield_default',
     type: 'play-group-by-inning',
     enabled: false,
-    params: { positions: ['P', 'C', '1B', '2B', '3B', 'SS'], times: 1, byInning: 4 },
+    params: { positions: [...INFIELD_POSITIONS], times: 1, byInning: 4 },
   })
   base.plan = normalizePlan(base)
   return base
@@ -39,7 +39,11 @@ export function coerceState(raw: unknown): AppState {
   const players: Player[] = Array.isArray(r.players)
     ? r.players
         .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object')
-        .map((p, i) => ({ id: typeof p.id === 'string' ? p.id : `p_${i}`, name: typeof p.name === 'string' ? p.name : '' }))
+        .map((p, i) => ({
+          id: typeof p.id === 'string' ? p.id : `p_${i}`,
+          name: typeof p.name === 'string' ? p.name : '',
+          active: p.active !== false,
+        }))
         .filter((p, i, arr) => arr.findIndex((q) => q.id === p.id) === i)
     : []
 
@@ -120,8 +124,8 @@ export function parseImport(text: string): AppState {
   return coerceState(raw)
 }
 
-export function downloadText(filename: string, text: string, mime: string): void {
-  const blob = new Blob([text], { type: mime })
+export function downloadText(filename: string, content: string | Blob, mime: string): void {
+  const blob = content instanceof Blob ? content : new Blob([content], { type: mime })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

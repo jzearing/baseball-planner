@@ -19,14 +19,26 @@ export function RosterEditor({ players, dispatch }: Props) {
     setDraft('')
   }
 
+  const playing = players.filter((p) => p.active).length
   return (
     <section className="panel">
       <h2>
-        Players <span className="muted">({players.length})</span>
+        Players{' '}
+        <span className="muted">
+          ({playing === players.length ? players.length : `${playing} of ${players.length} playing`})
+        </span>
       </h2>
+      {players.length > 0 && <p className="muted small">Untick a player who is absent to leave them out of the plan without deleting them.</p>}
       <ul className="roster">
         {players.map((p) => (
-          <li key={p.id}>
+          <li key={p.id} className={p.active ? '' : 'absent'}>
+            <input
+              type="checkbox"
+              checked={p.active}
+              title={p.active ? 'Playing today' : 'Absent: not in the plan'}
+              aria-label={`${p.name || 'Player'} is playing today`}
+              onChange={() => dispatch({ type: 'toggle-player-active', id: p.id })}
+            />
             <input
               value={p.name}
               aria-label="Player name"

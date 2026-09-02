@@ -1,5 +1,5 @@
 import type { AppState, ConstraintInstance } from '../lib/types'
-import { CONSTRAINT_DEFS, constraintDef, num, str, strList } from '../lib/constraints'
+import { CONSTRAINT_DEFS, bool, constraintDef, num, str, strList } from '../lib/constraints'
 import { positionLabel } from '../lib/positions'
 import type { Action } from '../state'
 import { MultiSelect } from './MultiSelect'
@@ -147,6 +147,10 @@ function ParamEditor({ inst, state, set }: ParamProps) {
             ))}
           </select>
           .
+          <label className="check-line" title="Players at this position may play it in more than one inning, even when the repeated-position rules are on">
+            <input type="checkbox" checked={bool(p, 'exemptFromRepeat')} onChange={(e) => set({ exemptFromRepeat: e.target.checked })} />
+            <span>Exempt {str(p, 'position')} from the repeated-position rules</span>
+          </label>
         </span>
       )
     case 'player-positions':

@@ -1,7 +1,7 @@
 import type { AppState, Inning, PlayerId, PositionId, Slot } from './types'
 import { BENCH } from './types'
 import { evaluateAll, makeContext, solverCostAll } from './constraints'
-import { emptyInning, slotOf } from './plan'
+import { activePlayers, emptyInning, slotOf } from './plan'
 import { positionDef } from './positions'
 import { randomInt, shuffle, type Rng } from './rng'
 
@@ -28,10 +28,11 @@ export function solvePlan(state: AppState, opts: SolveOptions): Inning[] {
   const restarts = opts.restarts ?? 8
   const maxIter = opts.maxIterations ?? 400
   const solved: Inning[] = []
+  const players = activePlayers(state)
 
   for (let i = 0; i < state.inningCount; i++) {
     const base = opts.keepFixed ? state.plan[i] : undefined
-    const fixedIds = base ? base.fixed.filter((pid) => state.players.some((p) => p.id === pid)) : []
+    const fixedIds = base ? base.fixed.filter((pid) => players.some((p) => p.id === pid)) : []
     const fixedSlots = new Map<PlayerId, Slot>()
     for (const pid of fixedIds) {
       const s = base ? slotOf(base, pid) : undefined
@@ -39,7 +40,7 @@ export function solvePlan(state: AppState, opts: SolveOptions): Inning[] {
     }
     const takenPositions = new Set([...fixedSlots.values()].filter((s) => s !== BENCH))
     const freePositions = state.positions.filter((p) => !takenPositions.has(p))
-    const freePlayers = state.players.map((p) => p.id).filter((pid) => !fixedSlots.has(pid))
+    const freePlayers = players.map((p) => p.id).filter((pid) => !fixedSlots.has(pid))
     const benchSlots = Math.max(0, freePlayers.length - freePositions.length)
     const slots: Slot[] = [...freePositions, ...Array<Slot>(benchSlots).fill(BENCH)]
     const candidates: (PlayerId | null)[] = [...freePlayers]

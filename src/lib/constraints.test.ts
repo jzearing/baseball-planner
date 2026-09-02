@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { evaluateAll, makeContext } from './constraints'
 import type { ConstraintInstance, Inning, Player } from './types'
 
-const players: Player[] = ['a', 'b', 'c', 'd'].map((id) => ({ id, name: id.toUpperCase() }))
+const players: Player[] = ['a', 'b', 'c', 'd'].map((id) => ({ id, name: id.toUpperCase(), active: true }))
 const positions = ['P', 'C', '1B']
 
 function inning(pos: Record<string, string | null>, bench: string[]): Inning {
@@ -52,6 +52,19 @@ describe('constraints', () => {
     const v = evaluateAll(makeContext({ players, positions, inningCount: 4 }, two), [inst])
     expect(v.map((x) => x.playerId).sort()).toEqual(['c', 'd'])
     expect(v[0].inning).toBe(1)
+  })
+
+  it('an exempt position is ignored by the repeated-position rules', () => {
+    const innings = [inning({ P: 'a', C: 'b', '1B': 'c' }, ['d']), inning({ P: 'a', C: 'b', '1B': 'd' }, ['c'])]
+    const ctx = makeContext({ players, positions, inningCount: 2 }, innings)
+    const rules = [c('no-repeat-position', { maxTimes: 1 }), c('no-consecutive-same-position')]
+    expect(evaluateAll(ctx, rules).map((x) => x.playerId).sort()).toEqual(['a', 'a', 'a', 'a', 'b', 'b', 'b', 'b'])
+    const exemptC = c('position-eligibility', { position: 'C', playerIds: ['b'], exemptFromRepeat: true })
+    const v = evaluateAll(ctx, [...rules, exemptC])
+    expect(v.every((x) => x.playerId === 'a')).toBe(true)
+    // Disabled rules do not exempt anything.
+    const off = evaluateAll(ctx, [...rules, { ...exemptC, enabled: false }])
+    expect(off.some((x) => x.playerId === 'b')).toBe(true)
   })
 
   it('position-eligibility and player-positions', () => {

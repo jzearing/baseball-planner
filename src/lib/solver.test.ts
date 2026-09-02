@@ -9,7 +9,7 @@ import type { AppState } from './types'
 
 function roster(n: number): AppState {
   const s = defaultState()
-  s.players = Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: `Player ${i + 1}` }))
+  s.players = Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: `Player ${i + 1}`, active: true }))
   s.constraints = s.constraints.map((c) => ({ ...c, enabled: true }))
   s.constraints.push({ id: 'elig', type: 'position-eligibility', enabled: true, params: { position: 'P', playerIds: ['p0', 'p1', 'p2', 'p3', 'p4', 'p5'] } })
   return coerceState(s)

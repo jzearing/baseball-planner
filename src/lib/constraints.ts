@@ -1,7 +1,7 @@
 import type { AppState, ConstraintInstance, ConstraintType, Inning, Player, PlayerId, PositionId, Slot, Violation } from './types'
 import { BENCH } from './types'
 import { INFIELD_POSITIONS } from './positions'
-import { slotLookup } from './plan'
+import { activePlayers, slotLookup } from './plan'
 
 /** Everything a constraint needs to evaluate a (possibly partial) plan. */
 export interface EvalContext {
@@ -13,18 +13,30 @@ export interface EvalContext {
   /** innings[i] -> player -> slot */
   lookup: Map<PlayerId, Slot>[]
   playerName: (id: PlayerId) => string
+  /** Positions exempt from the repeated-position rules (set by "Who can play a position"). */
+  repeatExempt: Set<PositionId>
 }
 
 export function makeContext(state: Pick<AppState, 'players' | 'positions' | 'inningCount'>, innings: Inning[]): EvalContext {
   const names = new Map(state.players.map((p) => [p.id, p.name]))
   return {
-    players: state.players,
+    players: activePlayers(state),
     positions: state.positions,
     innings,
     totalInnings: state.inningCount,
     lookup: innings.map(slotLookup),
     playerName: (id) => names.get(id) ?? '?',
+    repeatExempt: new Set(),
   }
+}
+
+/** Positions that enabled eligibility rules have marked as exempt from repeat rules. */
+export function repeatExemptPositions(constraints: ConstraintInstance[]): Set<PositionId> {
+  const out = new Set<PositionId>()
+  for (const c of constraints) {
+    if (c.enabled && c.type === 'position-eligibility' && c.params.exemptFromRepeat === true) out.add(str(c.params, 'position'))
+  }
+  return out
 }
 
 export interface ConstraintDef {
@@ -49,6 +61,11 @@ export function num(params: Record<string, unknown>, key: string, fallback: numb
 export function str(params: Record<string, unknown>, key: string, fallback = ''): string {
   const v = params[key]
   return typeof v === 'string' ? v : fallback
+}
+
+export function bool(params: Record<string, unknown>, key: string, fallback = false): boolean {
+  const v = params[key]
+  return typeof v === 'boolean' ? v : fallback
 }
 
 export function strList(params: Record<string, unknown>, key: string): string[] {
@@ -79,7 +96,7 @@ const noRepeatPosition: ConstraintDef = {
       const where = new Map<PositionId, number[]>()
       ctx.lookup.forEach((lk, i) => {
         const s = lk.get(p.id)
-        if (s && s !== BENCH) where.set(s, [...(where.get(s) ?? []), i])
+        if (s && s !== BENCH && !ctx.repeatExempt.has(s)) where.set(s, [...(where.get(s) ?? []), i])
       })
       for (const [pos, innings] of where) {
         if (innings.length > max) {
@@ -186,7 +203,7 @@ const noConsecutiveSamePosition: ConstraintDef = {
       for (let i = 1; i < ctx.lookup.length; i++) {
         const a = ctx.lookup[i - 1].get(p.id)
         const b = ctx.lookup[i].get(p.id)
-        if (a && a === b && a !== BENCH) {
+        if (a && a === b && a !== BENCH && !ctx.repeatExempt.has(a)) {
           const msg = `${ctx.playerName(p.id)} plays ${a} in innings ${i} and ${i + 1}`
           out.push(v(inst, this, msg, i - 1, p.id), v(inst, this, msg, i, p.id))
         }
@@ -248,7 +265,7 @@ const positionEligibility: ConstraintDef = {
   name: 'Who can play a position',
   description: 'Only the checked players may play the chosen position.',
   repeatable: true,
-  defaultParams: () => ({ position: 'P', playerIds: [] }),
+  defaultParams: () => ({ position: 'C', playerIds: [], exemptFromRepeat: false }),
   evaluate(ctx, params, inst) {
     const pos = str(params, 'position')
     if (!ctx.positions.includes(pos)) return []
@@ -301,6 +318,7 @@ export function constraintDef(type: ConstraintType): ConstraintDef {
 
 /** Evaluate every enabled constraint against the given innings. */
 export function evaluateAll(ctx: EvalContext, constraints: ConstraintInstance[]): Violation[] {
+  ctx.repeatExempt = repeatExemptPositions(constraints)
   const out: Violation[] = []
   for (const inst of constraints) {
     if (!inst.enabled) continue
@@ -313,6 +331,7 @@ export function evaluateAll(ctx: EvalContext, constraints: ConstraintInstance[])
 
 /** Total look-ahead cost of all enabled constraints (solver only). */
 export function solverCostAll(ctx: EvalContext, constraints: ConstraintInstance[]): number {
+  ctx.repeatExempt = repeatExemptPositions(constraints)
   let cost = 0
   for (const inst of constraints) {
     if (!inst.enabled) continue
