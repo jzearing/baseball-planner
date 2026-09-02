@@ -1,8 +1,9 @@
 import type { AppState, ConstraintInstance } from '../lib/types'
-import { CONSTRAINT_DEFS, MAX_PRIORITY, MIN_PRIORITY, bool, constraintDef, num, str, strList } from '../lib/constraints'
+import { CONSTRAINT_DEFS, bool, constraintDef, num, str, strList } from '../lib/constraints'
 import { periodNoun, positionLabel } from '../lib/positions'
 import type { Action } from '../state'
 import { MultiSelect } from './MultiSelect'
+import { dropAttrs, startDrag, useDropTarget } from './dnd'
 
 interface Props {
   state: AppState
@@ -25,12 +26,12 @@ export function ConstraintPanel({ state, dispatch, counts }: Props) {
     <section className="panel">
       <h2>Constraints</h2>
       <p className="muted small">
-        Checked rules are enforced by the solver and checked after every manual change. When not every rule can be met, higher-priority rules win: use
-        the − and + buttons to rank them.
+        Checked rules are enforced by the solver and checked after every manual change. The list is in priority order: when not every rule can be met,
+        rules nearer the top win. Drag the ⋮⋮ handle to reorder.
       </p>
       <ul className="constraints">
-        {state.constraints.map((inst) => (
-          <ConstraintRow key={inst.id} inst={inst} state={state} dispatch={dispatch} count={counts.get(inst.id) ?? 0} />
+        {state.constraints.map((inst, index) => (
+          <ConstraintRow key={inst.id} inst={inst} index={index} state={state} dispatch={dispatch} count={counts.get(inst.id) ?? 0} />
         ))}
       </ul>
       <label className="field">
@@ -62,17 +63,38 @@ export function ConstraintPanel({ state, dispatch, counts }: Props) {
 
 interface RowProps {
   inst: ConstraintInstance
+  index: number
   state: AppState
   dispatch: (a: Action) => void
   count: number
 }
 
-function ConstraintRow({ inst, state, dispatch, count }: RowProps) {
+function ConstraintRow({ inst, index, state, dispatch, count }: RowProps) {
   const def = constraintDef(inst.type)
   const set = (params: Record<string, unknown>) => dispatch({ type: 'set-constraint-params', id: inst.id, params })
+  const target = { kind: 'rule', index } as const
+  const { zone, ...handlers } = useDropTarget(target, dispatch)
   return (
-    <li className={`constraint${inst.enabled ? '' : ' off'}${count > 0 && inst.enabled ? ' broken' : ''}`}>
+    <li
+      className={`constraint${inst.enabled ? '' : ' off'}${count > 0 && inst.enabled ? ' broken' : ''}${zone ? ` zone-${zone}` : ''}`}
+      {...handlers}
+      {...dropAttrs(target, true, true)}
+    >
       <div className="constraint-head">
+        <span
+          className="grip rule-grip"
+          draggable
+          data-drag-handle="1"
+          title="Drag to change priority: rules nearer the top win"
+          aria-label={`Priority ${index + 1}. Drag to reorder.`}
+          onDragStart={(e) => startDrag(e, target)}
+          onDragEnd={handlers.onDragEnd}
+        >
+          ⋮⋮
+        </span>
+        <span className="rank" title="Priority: 1 is satisfied first">
+          {index + 1}
+        </span>
         <label>
           <input type="checkbox" checked={inst.enabled} onChange={() => dispatch({ type: 'toggle-constraint', id: inst.id })} />
           <span className="constraint-name">{def.name}</span>
@@ -82,27 +104,7 @@ function ConstraintRow({ inst, state, dispatch, count }: RowProps) {
             ⚠ {count}
           </span>
         )}
-        <span className="priority" title="Priority: when rules conflict, a higher number is satisfied first">
-          <button
-            type="button"
-            className="icon"
-            aria-label="Lower priority"
-            disabled={inst.priority <= MIN_PRIORITY}
-            onClick={() => dispatch({ type: 'bump-constraint-priority', id: inst.id, delta: -1 })}
-          >
-            −
-          </button>
-          <span className={`priority-value p${Math.min(inst.priority, 5)}`}>P{inst.priority}</span>
-          <button
-            type="button"
-            className="icon"
-            aria-label="Raise priority"
-            disabled={inst.priority >= MAX_PRIORITY}
-            onClick={() => dispatch({ type: 'bump-constraint-priority', id: inst.id, delta: 1 })}
-          >
-            +
-          </button>
-        </span>
+
         {def.repeatable && (
           <button type="button" className="icon" title="Remove rule" onClick={() => dispatch({ type: 'remove-constraint', id: inst.id })}>
             ✕

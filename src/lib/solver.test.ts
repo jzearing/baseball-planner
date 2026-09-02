@@ -5,13 +5,13 @@ import { solvePlan } from './solver'
 import { coerceState, defaultState } from './storage'
 import { slotOf } from './plan'
 import { BENCH } from './types'
-import type { AppState } from './types'
+import type { AppState, ConstraintInstance } from './types'
 
 function roster(n: number): AppState {
   const s = defaultState()
   s.players = Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: `Player ${i + 1}`, active: true }))
   s.constraints = s.constraints.map((c) => ({ ...c, enabled: true }))
-  s.constraints.push({ id: 'elig', type: 'position-eligibility', enabled: true, priority: 3, params: { position: 'P', playerIds: ['p0', 'p1', 'p2', 'p3', 'p4', 'p5'] } })
+  s.constraints.unshift({ id: 'elig', type: 'position-eligibility', enabled: true, params: { position: 'P', playerIds: ['p0', 'p1', 'p2', 'p3', 'p4', 'p5'] } })
   return coerceState(s)
 }
 
@@ -67,7 +67,7 @@ describe('solvePlan', () => {
     const s = defaultState('soccer')
     s.players = Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, name: `Player ${i + 1}`, active: true }))
     s.constraints = s.constraints.map((c) => ({ ...c, enabled: c.type !== 'no-consecutive-same-position' }))
-    s.constraints.push({ id: 'gk', type: 'position-eligibility', enabled: true, priority: 3, params: { position: 'GK', playerIds: ['p0', 'p1'], exemptFromRepeat: true } })
+    s.constraints.unshift({ id: 'gk', type: 'position-eligibility', enabled: true, params: { position: 'GK', playerIds: ['p0', 'p1'], exemptFromRepeat: true } })
     const state = coerceState(s)
     expect(state.periodName).toBe('Quarter')
     expect(state.inningCount).toBe(4)
@@ -82,21 +82,24 @@ describe('solvePlan', () => {
     expect(v).toEqual([])
   })
 
-  function singleGoalie(gkPriority: number, repeatPriority: number) {
+  function singleGoalie(goalieFirst: boolean) {
     const s = defaultState('soccer')
     s.players = Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, name: `Player ${i + 1}`, active: true }))
     s.constraints = s.constraints.map((c) => ({
       ...c,
       enabled: c.type === 'no-repeat-position' || c.type === 'equal-sitting' || c.type === 'no-consecutive-bench',
-      priority: c.type === 'no-repeat-position' ? repeatPriority : c.priority,
     }))
     // One goalie, and the rule is NOT exempt from repeats, so the two rules conflict every quarter after the first.
-    s.constraints.push({ id: 'gk', type: 'position-eligibility', enabled: true, priority: gkPriority, params: { position: 'GK', playerIds: ['p0'], exemptFromRepeat: false } })
+    const gk: ConstraintInstance = { id: 'gk', type: 'position-eligibility', enabled: true, params: { position: 'GK', playerIds: ['p0'], exemptFromRepeat: false } }
+    const repeat = s.constraints.find((c) => c.type === 'no-repeat-position')!
+    const rest = s.constraints.filter((c) => c.type !== 'no-repeat-position')
+    // List order is priority: whichever of the two comes first wins.
+    s.constraints = goalieFirst ? [gk, ...rest, repeat] : [repeat, ...rest, gk]
     return coerceState(s)
   }
 
-  it('keeps the only goalie in goal when that rule outranks no-repeat', () => {
-    const s = singleGoalie(3, 1)
+  it('keeps the only goalie in goal when that rule is above no-repeat', () => {
+    const s = singleGoalie(true)
     const plan = solvePlan(s, { keepFixed: false, rng: seededRng(11), timeBudgetMs: 1000 })
     expect(plan.map((inn) => inn.positions.GK)).toEqual(['p0', 'p0', 'p0', 'p0'])
     const v = evaluateAll(makeContext(s, plan), s.constraints)
@@ -104,8 +107,8 @@ describe('solvePlan', () => {
     expect(v.some((x) => x.constraintName === 'No repeated positions')).toBe(true)
   })
 
-  it('rotates the goalie out when no-repeat outranks the eligibility rule', () => {
-    const s = singleGoalie(1, 3)
+  it('rotates the goalie out when no-repeat is above the eligibility rule', () => {
+    const s = singleGoalie(false)
     const plan = solvePlan(s, { keepFixed: false, rng: seededRng(11), timeBudgetMs: 1000 })
     expect(plan.filter((inn) => inn.positions.GK === 'p0').length).toBeLessThanOrEqual(1)
     const v = evaluateAll(makeContext(s, plan), s.constraints)

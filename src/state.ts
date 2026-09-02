@@ -1,5 +1,5 @@
 import type { AppState, ConstraintInstance, ConstraintType, Inning, Player, PlayerId, PositionId, Preference } from './lib/types'
-import { clampPriority, constraintDef } from './lib/constraints'
+import { constraintDef } from './lib/constraints'
 import {
   clearFixed,
   moveInColumn,
@@ -30,7 +30,7 @@ export type Action =
   | { type: 'toggle-position'; position: PositionId }
   | { type: 'toggle-constraint'; id: string }
   | { type: 'set-constraint-params'; id: string; params: Record<string, unknown> }
-  | { type: 'bump-constraint-priority'; id: string; delta: number }
+  | { type: 'move-constraint'; from: number; insertBefore: number }
   | { type: 'add-constraint'; constraintType: ConstraintType }
   | { type: 'remove-constraint'; id: string }
   | { type: 'add-preference' }
@@ -152,18 +152,15 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         constraints: state.constraints.map((c) => (c.id === action.id ? { ...c, params: { ...c.params, ...action.params } } : c)),
       }
-    case 'bump-constraint-priority':
-      return {
-        ...state,
-        constraints: state.constraints.map((c) => (c.id === action.id ? { ...c, priority: clampPriority(c.priority + action.delta) } : c)),
-      }
+    case 'move-constraint':
+      return { ...state, constraints: moveItem(state.constraints, action.from, action.insertBefore) }
     case 'add-constraint': {
       const def = constraintDef(action.constraintType)
       const params = def.defaultParams()
       if (def.type === 'play-group-by-inning') params.positions = [...sportDef(state.sport).defaultGroup]
       if (def.type === 'position-eligibility') params.position = state.positions[0] ?? ''
-      const inst: ConstraintInstance = { id: newId('c'), type: def.type, enabled: true, priority: def.defaultPriority, params }
-      return { ...state, constraints: [...state.constraints, inst] }
+      const inst: ConstraintInstance = { id: newId('c'), type: def.type, enabled: true, params }
+      return { ...state, constraints: def.addAtTop ? [inst, ...state.constraints] : [...state.constraints, inst] }
     }
     case 'remove-constraint':
       return { ...state, constraints: state.constraints.filter((c) => c.id !== action.id) }

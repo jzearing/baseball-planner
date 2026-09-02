@@ -373,42 +373,34 @@ button.icon:hover {
 .constraint-name {
   font-weight: 600;
 }
-.priority {
+.rule-grip {
+  cursor: grab;
+  color: var(--muted);
+  letter-spacing: -2px;
+  padding: 0 0.15rem;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+}
+.rank {
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #fff;
-}
-.priority .icon {
-  padding: 0 0.3rem;
-  line-height: 1.4;
-  font-weight: 700;
-  color: var(--accent);
-}
-.priority .icon:hover:not(:disabled) {
-  color: var(--accent);
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
   background: var(--accent-soft);
-}
-.priority .icon:disabled {
-  color: var(--line);
-}
-.priority-value {
-  font-size: 0.75rem;
-  font-weight: 700;
-  min-width: 1.4rem;
-  text-align: center;
-  color: var(--muted);
-}
-.priority-value.p2 {
-  color: #4b5563;
-}
-.priority-value.p3 {
   color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
 }
-.priority-value.p4,
-.priority-value.p5 {
-  color: var(--danger);
+.constraint.zone-before {
+  box-shadow: 0 -3px 0 0 var(--accent);
+}
+.constraint.zone-after {
+  box-shadow: 0 3px 0 0 var(--accent);
 }
 .constraint-body {
   margin-top: 0.35rem;

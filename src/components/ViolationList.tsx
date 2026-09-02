@@ -12,7 +12,7 @@ export function ViolationList({ violations, hasPlan, periodName }: { violations:
   }
   const unique = new Map<string, Violation>()
   for (const v of violations) unique.set(`${v.constraintId}|${v.message}`, v)
-  const list = [...unique.values()].sort((a, b) => b.priority - a.priority || (a.inning ?? 99) - (b.inning ?? 99))
+  const list = [...unique.values()].sort((a, b) => a.rank - b.rank || (a.inning ?? 99) - (b.inning ?? 99))
   return (
     <section className="violations">
       <strong>
@@ -24,7 +24,7 @@ export function ViolationList({ violations, hasPlan, periodName }: { violations:
             {v.inning !== undefined && <span className="muted">{periodTitle(periodName, v.inning)}: </span>}
             {v.message}{' '}
             <span className="muted">
-              ({v.constraintName}, P{v.priority})
+              ({v.constraintName}, priority {v.rank})
             </span>
           </li>
         ))}
