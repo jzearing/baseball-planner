@@ -5,12 +5,13 @@ import { installTouchDnd } from './components/dnd'
 import { FieldTable } from './components/FieldTable'
 import { RosterEditor } from './components/RosterEditor'
 import { SettingsPanel } from './components/SettingsPanel'
+import { Tutorial } from './components/Tutorial'
 import { ViolationList } from './components/ViolationList'
 import { evaluateAll, makeContext } from './lib/constraints'
 import { planToCsv } from './lib/csv'
 import { renderPlanImage } from './lib/image'
 import { activePlayers } from './lib/plan'
-import { defaultState, downloadText, exportJson, loadState, parseImport, saveState } from './lib/storage'
+import { defaultState, downloadText, exportJson, loadState, markTutorialSeen, parseImport, saveState, tutorialSeen } from './lib/storage'
 import { reducer } from './state'
 
 function fileStem(title: string): string {
@@ -21,6 +22,7 @@ function fileStem(title: string): string {
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, () => loadState() ?? defaultState())
   const [notice, setNotice] = useState<string | null>(null)
+  const [showTutorial, setShowTutorial] = useState(() => !tutorialSeen())
   const fileInput = useRef<HTMLInputElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -48,6 +50,11 @@ export default function App() {
   const flash = (msg: string) => {
     setNotice(msg)
     window.setTimeout(() => setNotice(null), 4000)
+  }
+
+  const closeTutorial = () => {
+    markTutorialSeen()
+    setShowTutorial(false)
   }
 
   const onShare = async () => {
@@ -80,12 +87,17 @@ export default function App() {
     <div className="app" ref={rootRef}>
       <aside className="sidebar rail-left no-print">
         <header className="brand">
-          <h1>⚾ Lineup Planner</h1>
+          <div className="row">
+            <h1>⚾ Lineup Planner</h1>
+            <span className="spacer" />
+            <button type="button" className="secondary small-btn" onClick={() => setShowTutorial(true)} title="Show the how-to guide">
+              Help
+            </button>
+          </div>
           <p className="muted small">Fielding rotations and batting order for youth baseball. Everything stays in your browser.</p>
         </header>
         <SettingsPanel state={state} dispatch={dispatch} />
         <RosterEditor players={state.players} dispatch={dispatch} />
-        {state.players.length > 0 && <BattingOrder state={state} dispatch={dispatch} />}
       </aside>
 
       <main className="main">
@@ -129,10 +141,6 @@ export default function App() {
           </div>
         ) : (
           <>
-            {/* Printed copy of the batting order; on screen it lives in the left rail. */}
-            <div className="print-only print-batting">
-              <BattingOrder state={state} dispatch={dispatch} />
-            </div>
             <div className="plan-area">
               <FieldTable state={state} dispatch={dispatch} violations={violations} />
               <p className="hint muted small no-print">
@@ -140,6 +148,9 @@ export default function App() {
                 screen, press and hold a name, then drag. Use the lock to keep a player in place when you re-solve.
               </p>
               <ViolationList violations={violations} hasPlan={hasPlan} />
+            </div>
+            <div className="batting-wrap">
+              <BattingOrder state={state} dispatch={dispatch} />
             </div>
           </>
         )}
@@ -180,6 +191,7 @@ export default function App() {
           <p className="muted small">Your roster, rules and plan are saved automatically in this browser.</p>
         </section>
       </aside>
+      <Tutorial open={showTutorial} onClose={closeTutorial} />
     </div>
   )
 }
