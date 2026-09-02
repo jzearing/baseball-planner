@@ -7,12 +7,13 @@ import {
   swapAcrossInnings,
   normalizeBattingOrder,
   normalizePlan,
+  shuffleBattingOrder,
   swapInColumn,
   swapItems,
   toggleFixed,
 } from './lib/plan'
 import { sortPositions } from './lib/positions'
-import { newId, shuffle } from './lib/rng'
+import { newId } from './lib/rng'
 import { solvePlan } from './lib/solver'
 import { defaultState } from './lib/storage'
 
@@ -32,7 +33,6 @@ export type Action =
   | { type: 'set-preference'; id: string; patch: Partial<Omit<Preference, 'id'>> }
   | { type: 'remove-preference'; id: string }
   | { type: 'randomize-lineup' }
-  | { type: 'resolve-keep-fixed' }
   | { type: 'shuffle-batting' }
   | { type: 'swap-cell'; inning: number; a: number; b: number }
   | { type: 'move-cell'; inning: number; from: number; insertBefore: number }
@@ -43,6 +43,8 @@ export type Action =
   | { type: 'move-batter'; from: number; insertBefore: number }
   | { type: 'toggle-fixed'; inning: number; playerId: PlayerId }
   | { type: 'clear-fixed' }
+  | { type: 'toggle-batting-fixed'; playerId: PlayerId }
+  | { type: 'clear-batting-fixed' }
   | { type: 'clear-plan' }
   | { type: 'import'; state: AppState }
   | { type: 'reset' }
@@ -51,6 +53,7 @@ function withRoster(state: AppState, players: Player[]): AppState {
   const next = { ...state, players }
   next.plan = normalizePlan(next)
   next.battingOrder = normalizeBattingOrder(players, state.battingOrder)
+  next.battingFixed = state.battingFixed.filter((pid) => next.battingOrder.includes(pid))
   return next
 }
 
@@ -115,14 +118,11 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, preferences: state.preferences.map((p) => (p.id === action.id ? { ...p, ...action.patch } : p)) }
     case 'remove-preference':
       return { ...state, preferences: state.preferences.filter((p) => p.id !== action.id) }
-    case 'randomize-lineup': {
-      const cleared = { ...state, plan: clearFixed(state.plan) }
-      return { ...cleared, plan: solvePlan(cleared, { keepFixed: false }) }
-    }
-    case 'resolve-keep-fixed':
+    case 'randomize-lineup':
+      // Locked players stay where they are; everyone else is re-solved from inning 1.
       return { ...state, plan: solvePlan(state, { keepFixed: true }) }
     case 'shuffle-batting':
-      return { ...state, battingOrder: shuffle(state.battingOrder) }
+      return { ...state, battingOrder: shuffleBattingOrder(state.battingOrder, state.battingFixed) }
     case 'swap-cell':
       return { ...state, plan: swapInColumn(state, action.inning, action.a, action.b) }
     case 'move-cell':
@@ -141,6 +141,15 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, plan: toggleFixed(state.plan, action.inning, action.playerId) }
     case 'clear-fixed':
       return { ...state, plan: clearFixed(state.plan) }
+    case 'toggle-batting-fixed':
+      return {
+        ...state,
+        battingFixed: state.battingFixed.includes(action.playerId)
+          ? state.battingFixed.filter((p) => p !== action.playerId)
+          : [...state.battingFixed, action.playerId],
+      }
+    case 'clear-batting-fixed':
+      return { ...state, battingFixed: [] }
     case 'clear-plan': {
       const next = { ...state, plan: [] as Inning[] }
       next.plan = normalizePlan(next)

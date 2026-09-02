@@ -26,12 +26,12 @@ const STEPS: { title: string; body: string }[] = [
     body: 'After every change the rules are re-checked. A highlighted name with a ⚠ breaks a rule; hover or tap the icon to see which one.',
   },
   {
-    title: 'Lock and re-solve',
-    body: 'Use the 🔒 on a name to keep that player where they are, then press Re-solve unfixed to reshuffle everyone else around them.',
+    title: 'Lock and randomize again',
+    body: 'Use the 🔒 on a name to keep that player where they are. Randomize lineup always leaves locked players in place and re-solves everyone else around them. Unlock all clears the locks.',
   },
   {
     title: 'Batting order',
-    body: 'The batting order sits under the field table. Shuffle it, or drag names to swap or insert just like on the field.',
+    body: 'The batting order sits under the field table. Shuffle it, or drag names to swap or insert just like on the field. Lock a batter to keep them in their spot when you shuffle.',
   },
   {
     title: 'Print, share and save',

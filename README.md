@@ -28,7 +28,8 @@ to a JSON file you can import later).
   innings the same way. On a phone or tablet, press and hold a name, then drag.
 - Every manual change re-checks the rules: offending names are highlighted with a ⚠ whose
   hover text explains which rule is broken.
-- Lock (🔒) any player in place and **Re-solve unfixed** to randomize everyone else.
+- Lock (🔒) any player in place; **Randomize lineup** always leaves locked players where they
+  are and re-solves everyone else. Batters can be locked too, so Shuffle keeps them in their spot.
 - A batting order with the same drag-to-swap / drop-between-to-insert mechanics.
 - Share a colour image of the plan straight to a text message (on browsers that support
   sharing files; elsewhere the image downloads), export to CSV, export/import JSON, and a

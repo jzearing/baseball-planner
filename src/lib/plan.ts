@@ -1,5 +1,6 @@
 import type { AppState, Inning, Player, PlayerId, PositionId, Slot } from './types'
 import { BENCH } from './types'
+import { shuffle, type Rng } from './rng'
 
 /** Roster members who are playing in this game. */
 export function activePlayers(state: Pick<AppState, 'players'>): Player[] {
@@ -78,6 +79,17 @@ export function normalizeBattingOrder(players: Player[], order: PlayerId[]): Pla
   for (const pid of order) if (known.has(pid) && !out.includes(pid)) out.push(pid)
   for (const p of active) if (!out.includes(p.id)) out.push(p.id)
   return out
+}
+
+/** Shuffle the batting order while locked batters keep their exact spots. */
+export function shuffleBattingOrder(order: PlayerId[], fixed: PlayerId[], rng: Rng = Math.random): PlayerId[] {
+  const locked = new Set(fixed)
+  const loose = shuffle(
+    order.filter((pid) => !locked.has(pid)),
+    rng,
+  )
+  let k = 0
+  return order.map((pid) => (locked.has(pid) ? pid : loose[k++]))
 }
 
 /** The players of one inning as a vertical list: positions in order, then bench rows. */

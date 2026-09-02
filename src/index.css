@@ -564,6 +564,23 @@ table.plan thead th {
 .cell .pin.on {
   opacity: 1;
 }
+.batter .pin {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: auto;
+  font-size: 0.8rem;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.batter:hover .pin,
+.batter .pin.on {
+  opacity: 1;
+}
+.batter.fixed {
+  border-color: var(--fixed);
+  background: var(--fixed-bg);
+}
 
 /* Drop-zone feedback: an insert line above/below, or a swap highlight. */
 .zone-on {

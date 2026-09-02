@@ -165,19 +165,17 @@ export default function App() {
 
       <main className="main">
         <div className="toolbar no-print">
-          <button type="button" className="primary" disabled={!canSolve} onClick={() => dispatch({ type: 'randomize-lineup' })} title="Build a brand-new plan (clears fixed markers)">
-            Randomize lineup
-          </button>
           <button
             type="button"
-            disabled={!canSolve || !hasPlan}
-            onClick={() => dispatch({ type: 'resolve-keep-fixed' })}
-            title="Randomize everyone except the players you have locked in place"
+            className="primary"
+            disabled={!canSolve}
+            onClick={() => dispatch({ type: 'randomize-lineup' })}
+            title={fixedCount > 0 ? 'Randomize everyone except the locked players' : 'Build a plan that fits the enabled rules'}
           >
-            Re-solve unfixed {fixedCount > 0 && <span className="badge blue">🔒 {fixedCount}</span>}
+            Randomize lineup {fixedCount > 0 && <span className="badge blue">🔒 {fixedCount}</span>}
           </button>
           {fixedCount > 0 && (
-            <button type="button" className="link" onClick={() => dispatch({ type: 'clear-fixed' })}>
+            <button type="button" className="secondary small-btn" onClick={() => dispatch({ type: 'clear-fixed' })} title="Remove every lock on the field plan">
               Unlock all
             </button>
           )}
@@ -214,8 +212,8 @@ export default function App() {
               <FieldTable state={state} dispatch={dispatch} violations={violations} />
               <p className="hint muted small no-print">
                 Drag a name onto another to swap. Drop it between two rows to insert and shift the others down. Drop a name onto a name in another inning
-                to trade those two players in both innings. Drag inning headers to reorder. On a touch screen, press and hold a name, then drag. Use the
-                lock to keep a player in place when you re-solve.
+                to trade those two players in both innings. Drag inning headers to reorder. On a touch screen, press and hold a name, then drag. Lock a
+                player to keep them in place the next time you randomize.
               </p>
               <ViolationList violations={violations} hasPlan={hasPlan} />
             </div>

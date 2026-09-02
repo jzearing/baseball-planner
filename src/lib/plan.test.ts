@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { columnList, moveItem, normalizeInning, swapAcrossInnings, swapItems, writeColumn } from './plan'
+import { columnList, moveItem, normalizeInning, shuffleBattingOrder, swapAcrossInnings, swapItems, writeColumn } from './plan'
+import { seededRng } from './rng'
 import { coerceState, defaultState } from './storage'
 import type { Inning, Player } from './types'
 
@@ -72,6 +73,21 @@ describe('swapAcrossInnings', () => {
     const plan = swapAcrossInnings(state(), 0, 0, 0, 3)
     expect(plan[0].positions.C).toBe('lee')
     expect(plan[0].bench).toEqual(['eli'])
+  })
+})
+
+describe('shuffleBattingOrder', () => {
+  it('keeps locked batters in their exact spots and shuffles the rest', () => {
+    const order = ['a', 'b', 'c', 'd', 'e', 'f']
+    let movedSomething = false
+    for (let seed = 1; seed <= 5; seed++) {
+      const out = shuffleBattingOrder(order, ['b', 'e'], seededRng(seed))
+      expect(out[1]).toBe('b')
+      expect(out[4]).toBe('e')
+      expect([...out].sort()).toEqual([...order].sort())
+      if (out.join() !== order.join()) movedSomething = true
+    }
+    expect(movedSomething).toBe(true)
   })
 })
 

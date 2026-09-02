@@ -53,6 +53,8 @@ export interface AppState {
   preferences: Preference[]
   plan: Inning[]
   battingOrder: PlayerId[]
+  /** Batters whose spot in the order Shuffle must not move. */
+  battingFixed: PlayerId[]
 }
 
 export interface Violation {
