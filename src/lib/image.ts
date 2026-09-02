@@ -33,8 +33,10 @@ export function renderPlanImage(state: AppState): Promise<Blob> {
   const gap = 28
   const tableW = labelW + cellW * innings
   const battingRows = state.battingOrder.length
+  const absent = state.players.filter((p) => !p.active)
+  const absentRows = absent.length > 0 ? 1 : 0
   const width = pad * 2 + tableW + gap + battingW
-  const height = pad * 2 + titleH + headH + Math.max(rows, battingRows) * rowH
+  const height = pad * 2 + titleH + headH + Math.max(rows + absentRows, battingRows) * rowH
 
   const canvas = document.createElement('canvas')
   canvas.width = width * scale
@@ -98,12 +100,23 @@ export function renderPlanImage(state: AppState): Promise<Blob> {
     })
   }
 
+  if (absent.length > 0) {
+    const rowY = y + rows * rowH
+    ctx.fillStyle = '#f3f4f6'
+    ctx.fillRect(tableX, rowY, tableW, rowH)
+    ctx.fillStyle = '#4b5550'
+    font(15, 700)
+    text('Absent', tableX + 10, rowY + rowH / 2, labelW - 16)
+    font(15, 400)
+    text(absent.map((p) => p.name).join(', '), tableX + labelW + 10, rowY + rowH / 2, tableW - labelW - 16)
+  }
+
   // Grid lines
   ctx.strokeStyle = LINE
   ctx.lineWidth = 1
   const tableTop = y - headH
-  const tableBottom = y + rows * rowH
-  for (let r = 0; r <= rows; r++) {
+  const tableBottom = y + (rows + absentRows) * rowH
+  for (let r = 0; r <= rows + absentRows; r++) {
     const ly = y + r * rowH + 0.5
     ctx.beginPath()
     ctx.moveTo(tableX, ly)
@@ -112,9 +125,11 @@ export function renderPlanImage(state: AppState): Promise<Blob> {
   }
   for (let i = 0; i <= innings + 1; i++) {
     const lx = (i === 0 ? tableX : tableX + labelW + (i - 1) * cellW) + 0.5
+    // Inner column lines stop above the absent row, which spans the table.
+    const bottom = i <= 1 || i === innings + 1 ? tableBottom : y + rows * rowH
     ctx.beginPath()
     ctx.moveTo(lx, tableTop)
-    ctx.lineTo(lx, tableBottom)
+    ctx.lineTo(lx, bottom)
     ctx.stroke()
   }
   ctx.strokeRect(tableX + 0.5, tableTop + 0.5, tableW - 1, tableBottom - tableTop - 1)

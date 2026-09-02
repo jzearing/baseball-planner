@@ -459,6 +459,18 @@ table.plan thead th {
 .bench-row td {
   background: #fafbfa;
 }
+.absent-row th,
+.absent-row td {
+  background: #f1f2f0;
+  color: var(--muted);
+}
+.absent-row td {
+  padding: 0.4rem 0.6rem;
+}
+.absent-row .pos-id {
+  color: var(--muted);
+  font-weight: 600;
+}
 .inning-head {
   cursor: grab;
   user-select: none;
@@ -610,10 +622,10 @@ body.touch-drag-active {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  max-width: 20rem;
 }
-.section-head {
-  max-width: 20rem;
+.sidebar .batting {
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
 }
 .batter {
   display: flex;
@@ -682,6 +694,7 @@ body.touch-drag-active {
   }
   .print-header {
     width: 100%;
+    order: -2;
   }
   .print-header h1 {
     font-size: 16pt;
@@ -728,8 +741,11 @@ body.touch-drag-active {
   .label-col {
     width: 1%;
   }
-  .batting {
+  .print-batting {
     flex: 0 0 2.6in;
+    order: -1;
+  }
+  .batting {
     margin-top: 0;
     break-inside: avoid;
   }

@@ -25,6 +25,7 @@ export function FieldTable({ state, dispatch, violations }: Props) {
     byCell.set(k, [...(byCell.get(k) ?? []), v])
   }
   const rowCount = state.positions.length + benchRows
+  const absent = state.players.filter((p) => !p.active)
 
   return (
     <div className="table-wrap">
@@ -70,6 +71,14 @@ export function FieldTable({ state, dispatch, violations }: Props) {
               </tr>
             )
           })}
+          {absent.length > 0 && (
+            <tr className="absent-row">
+              <th className="label-col" scope="row">
+                <span className="pos-id">Absent</span>
+              </th>
+              <td colSpan={Math.max(1, state.plan.length)}>{absent.map((p) => p.name || '(unnamed)').join(', ')}</td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

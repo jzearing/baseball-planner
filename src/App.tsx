@@ -22,7 +22,7 @@ export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, () => loadState() ?? defaultState())
   const [notice, setNotice] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
-  const mainRef = useRef<HTMLElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     saveState(state)
@@ -30,8 +30,8 @@ export default function App() {
 
   // Touch devices get no native drag events; this adds press-and-hold dragging.
   useEffect(() => {
-    if (!mainRef.current) return
-    return installTouchDnd(mainRef.current, dispatch)
+    if (!rootRef.current) return
+    return installTouchDnd(rootRef.current, dispatch)
   }, [])
 
   const violations = useMemo(() => evaluateAll(makeContext(state, state.plan), state.constraints), [state])
@@ -77,7 +77,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className="app" ref={rootRef}>
       <aside className="sidebar rail-left no-print">
         <header className="brand">
           <h1>⚾ Lineup Planner</h1>
@@ -85,9 +85,10 @@ export default function App() {
         </header>
         <SettingsPanel state={state} dispatch={dispatch} />
         <RosterEditor players={state.players} dispatch={dispatch} />
+        {state.players.length > 0 && <BattingOrder state={state} dispatch={dispatch} />}
       </aside>
 
-      <main className="main" ref={mainRef}>
+      <main className="main">
         <div className="toolbar no-print">
           <button type="button" className="primary" disabled={!canSolve} onClick={() => dispatch({ type: 'randomize-lineup' })} title="Build a brand-new plan (clears fixed markers)">
             Randomize lineup
@@ -128,6 +129,10 @@ export default function App() {
           </div>
         ) : (
           <>
+            {/* Printed copy of the batting order; on screen it lives in the left rail. */}
+            <div className="print-only print-batting">
+              <BattingOrder state={state} dispatch={dispatch} />
+            </div>
             <div className="plan-area">
               <FieldTable state={state} dispatch={dispatch} violations={violations} />
               <p className="hint muted small no-print">
@@ -136,7 +141,6 @@ export default function App() {
               </p>
               <ViolationList violations={violations} hasPlan={hasPlan} />
             </div>
-            <BattingOrder state={state} dispatch={dispatch} />
           </>
         )}
       </main>
