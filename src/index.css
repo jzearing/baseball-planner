@@ -698,17 +698,20 @@ body.touch-drag-active {
   padding-top: 0.75rem;
 }
 .qr-modal {
-  max-width: 34rem;
+  max-width: 44rem;
   text-align: center;
 }
 .qr-modal .modal-actions {
   text-align: left;
 }
+/* The qrcode renderer writes an inline pixel size on the canvas; override it so the
+   code always scales to the modal instead of overflowing it. */
 .qr-canvas {
   display: block;
   margin: 0.75rem auto 1rem;
-  width: min(100%, 480px);
-  height: auto;
+  width: 100% !important;
+  max-width: 560px;
+  height: auto !important;
   image-rendering: pixelated;
 }
 
