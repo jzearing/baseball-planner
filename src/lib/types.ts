@@ -4,6 +4,8 @@ export type PositionId = string
 export interface Player {
   id: PlayerId
   name: string
+  /** False when the player is absent for this game: kept on the roster but left out of the plan. */
+  active: boolean
 }
 
 /** One inning of the fielding plan. */

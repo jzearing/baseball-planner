@@ -9,12 +9,12 @@ export interface PositionDef {
 }
 
 export const POSITION_CATALOG: PositionDef[] = [
-  { id: 'P', label: 'Pitcher', group: 'battery' },
   { id: 'C', label: 'Catcher', group: 'battery' },
+  { id: 'P', label: 'Pitcher', group: 'battery' },
   { id: '1B', label: 'First base', group: 'infield' },
   { id: '2B', label: 'Second base', group: 'infield' },
-  { id: '3B', label: 'Third base', group: 'infield' },
   { id: 'SS', label: 'Shortstop', group: 'infield' },
+  { id: '3B', label: 'Third base', group: 'infield' },
   { id: 'LF', label: 'Left field', group: 'outfield' },
   { id: 'LCF', label: 'Left-center field', group: 'outfield' },
   { id: 'CF', label: 'Center field', group: 'outfield' },
@@ -22,10 +22,10 @@ export const POSITION_CATALOG: PositionDef[] = [
   { id: 'RF', label: 'Right field', group: 'outfield' },
 ]
 
-export const DEFAULT_POSITIONS: PositionId[] = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
+export const DEFAULT_POSITIONS: PositionId[] = ['C', 'P', '1B', '2B', 'SS', '3B', 'LF', 'CF', 'RF']
 
 /** Positions that count as "infield" for the play-group constraint default. */
-export const INFIELD_POSITIONS: PositionId[] = ['P', 'C', '1B', '2B', '3B', 'SS']
+export const INFIELD_POSITIONS: PositionId[] = ['C', 'P', '1B', '2B', 'SS', '3B']
 export const OUTFIELD_POSITIONS: PositionId[] = ['LF', 'LCF', 'CF', 'RCF', 'RF']
 
 const byId = new Map(POSITION_CATALOG.map((p) => [p.id, p]))

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { columnList, moveItem, normalizeInning, swapItems, writeColumn } from './plan'
 import type { Inning, Player } from './types'
 
-const players: Player[] = ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id, name: id.toUpperCase() }))
+const players: Player[] = ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id, name: id.toUpperCase(), active: true }))
 const positions = ['P', 'C', '1B']
 
 describe('moveItem', () => {

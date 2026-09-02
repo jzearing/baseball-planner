@@ -1,6 +1,11 @@
 import type { AppState, Inning, Player, PlayerId, PositionId, Slot } from './types'
 import { BENCH } from './types'
 
+/** Roster members who are playing in this game. */
+export function activePlayers(state: Pick<AppState, 'players'>): Player[] {
+  return state.players.filter((p) => p.active)
+}
+
 export function emptyInning(positions: PositionId[], players: Player[]): Inning {
   const pos: Record<PositionId, PlayerId | null> = {}
   for (const p of positions) pos[p] = null
@@ -9,7 +14,7 @@ export function emptyInning(positions: PositionId[], players: Player[]): Inning 
 
 /** Number of bench rows shown under the positions. */
 export function benchRowCount(state: Pick<AppState, 'players' | 'positions'>): number {
-  return Math.max(0, state.players.length - state.positions.length)
+  return Math.max(0, activePlayers(state).length - state.positions.length)
 }
 
 /** Where a player is in an inning: a position id, BENCH, or undefined if absent. */
@@ -59,17 +64,19 @@ export function normalizeInning(inning: Inning | undefined, positions: PositionI
 
 export function normalizePlan(state: AppState): Inning[] {
   const out: Inning[] = []
+  const players = activePlayers(state)
   for (let i = 0; i < state.inningCount; i++) {
-    out.push(normalizeInning(state.plan[i], state.positions, state.players))
+    out.push(normalizeInning(state.plan[i], state.positions, players))
   }
   return out
 }
 
 export function normalizeBattingOrder(players: Player[], order: PlayerId[]): PlayerId[] {
-  const known = new Set(players.map((p) => p.id))
+  const active = players.filter((p) => p.active)
+  const known = new Set(active.map((p) => p.id))
   const out: PlayerId[] = []
   for (const pid of order) if (known.has(pid) && !out.includes(pid)) out.push(pid)
-  for (const p of players) if (!out.includes(p.id)) out.push(p.id)
+  for (const p of active) if (!out.includes(p.id)) out.push(p.id)
   return out
 }
 

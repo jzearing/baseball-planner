@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { BattingOrder } from './components/BattingOrder'
 import { ConstraintPanel } from './components/ConstraintPanel'
+import { installTouchDnd } from './components/dnd'
 import { FieldTable } from './components/FieldTable'
 import { RosterEditor } from './components/RosterEditor'
 import { SettingsPanel } from './components/SettingsPanel'
 import { ViolationList } from './components/ViolationList'
 import { evaluateAll, makeContext } from './lib/constraints'
 import { planToCsv } from './lib/csv'
+import { renderPlanImage } from './lib/image'
+import { activePlayers } from './lib/plan'
 import { defaultState, downloadText, exportJson, loadState, parseImport, saveState } from './lib/storage'
 import { reducer } from './state'
 
@@ -19,10 +22,17 @@ export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, () => loadState() ?? defaultState())
   const [notice, setNotice] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
+  const mainRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     saveState(state)
   }, [state])
+
+  // Touch devices get no native drag events; this adds press-and-hold dragging.
+  useEffect(() => {
+    if (!mainRef.current) return
+    return installTouchDnd(mainRef.current, dispatch)
+  }, [])
 
   const violations = useMemo(() => evaluateAll(makeContext(state, state.plan), state.constraints), [state])
   const counts = useMemo(() => {
@@ -33,11 +43,28 @@ export default function App() {
 
   const hasPlan = state.plan.some((inn) => Object.values(inn.positions).some(Boolean))
   const fixedCount = state.plan.reduce((n, inn) => n + inn.fixed.length, 0)
-  const canSolve = state.players.length > 0
+  const canSolve = activePlayers(state).length > 0
 
   const flash = (msg: string) => {
     setNotice(msg)
     window.setTimeout(() => setNotice(null), 4000)
+  }
+
+  const onShare = async () => {
+    try {
+      const blob = await renderPlanImage(state)
+      const file = new File([blob], `${fileStem(state.gameTitle)}.png`, { type: 'image/png' })
+      const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean }
+      if (typeof nav.share === 'function' && nav.canShare?.({ files: [file] })) {
+        await nav.share({ files: [file], title: state.gameTitle || 'Game plan' })
+        return
+      }
+      downloadText(file.name, blob, 'image/png')
+      flash('Sharing is not available in this browser, so the image was downloaded instead. Attach it to a text or email.')
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
+      flash(`Could not share: ${err instanceof Error ? err.message : String(err)}`)
+    }
   }
 
   const onImport = async (file: File) => {
@@ -51,13 +78,70 @@ export default function App() {
 
   return (
     <div className="app">
-      <aside className="sidebar no-print">
+      <aside className="sidebar rail-left no-print">
         <header className="brand">
           <h1>⚾ Lineup Planner</h1>
           <p className="muted small">Fielding rotations and batting order for youth baseball. Everything stays in your browser.</p>
         </header>
         <SettingsPanel state={state} dispatch={dispatch} />
         <RosterEditor players={state.players} dispatch={dispatch} />
+      </aside>
+
+      <main className="main" ref={mainRef}>
+        <div className="toolbar no-print">
+          <button type="button" className="primary" disabled={!canSolve} onClick={() => dispatch({ type: 'randomize-lineup' })} title="Build a brand-new plan (clears fixed markers)">
+            Randomize lineup
+          </button>
+          <button
+            type="button"
+            disabled={!canSolve || !hasPlan}
+            onClick={() => dispatch({ type: 'resolve-keep-fixed' })}
+            title="Randomize everyone except the players you have locked in place"
+          >
+            Re-solve unfixed {fixedCount > 0 && <span className="badge blue">🔒 {fixedCount}</span>}
+          </button>
+          {fixedCount > 0 && (
+            <button type="button" className="link" onClick={() => dispatch({ type: 'clear-fixed' })}>
+              Unlock all
+            </button>
+          )}
+          <span className="spacer" />
+          <button type="button" className="secondary" disabled={!hasPlan} onClick={() => void onShare()} title="Send a picture of the plan to another coach">
+            Share image
+          </button>
+          <button type="button" className="secondary" disabled={!hasPlan} onClick={() => window.print()}>
+            Print
+          </button>
+          <button type="button" className="secondary" disabled={!hasPlan} onClick={() => downloadText(`${fileStem(state.gameTitle)}.csv`, planToCsv(state), 'text/csv')}>
+            Export CSV
+          </button>
+        </div>
+        {notice && <div className="notice no-print">{notice}</div>}
+
+        <header className="print-header print-only">
+          <h1>{state.gameTitle || 'Game plan'}</h1>
+        </header>
+
+        {state.players.length === 0 ? (
+          <div className="empty-state">
+            <p>Add your players in the left panel, choose which rules to enforce on the right, then hit <strong>Randomize lineup</strong>.</p>
+          </div>
+        ) : (
+          <>
+            <div className="plan-area">
+              <FieldTable state={state} dispatch={dispatch} violations={violations} />
+              <p className="hint muted small no-print">
+                Drag a name onto another to swap. Drop it between two rows to insert and shift the others down. Drag inning headers to reorder. On a touch
+                screen, press and hold a name, then drag. Use the lock to keep a player in place when you re-solve.
+              </p>
+              <ViolationList violations={violations} hasPlan={hasPlan} />
+            </div>
+            <BattingOrder state={state} dispatch={dispatch} />
+          </>
+        )}
+      </main>
+
+      <aside className="sidebar rail-right no-print">
         <ConstraintPanel state={state} dispatch={dispatch} counts={counts} />
         <section className="panel">
           <h2>Save &amp; load</h2>
@@ -92,55 +176,6 @@ export default function App() {
           <p className="muted small">Your roster, rules and plan are saved automatically in this browser.</p>
         </section>
       </aside>
-
-      <main className="main">
-        <div className="toolbar no-print">
-          <button type="button" className="primary" disabled={!canSolve} onClick={() => dispatch({ type: 'randomize-lineup' })} title="Build a brand-new plan (clears fixed markers)">
-            Randomize lineup
-          </button>
-          <button
-            type="button"
-            disabled={!canSolve || !hasPlan}
-            onClick={() => dispatch({ type: 'resolve-keep-fixed' })}
-            title="Randomize everyone except the players you have locked in place"
-          >
-            Re-solve unfixed {fixedCount > 0 && <span className="badge blue">🔒 {fixedCount}</span>}
-          </button>
-          {fixedCount > 0 && (
-            <button type="button" className="link" onClick={() => dispatch({ type: 'clear-fixed' })}>
-              Unlock all
-            </button>
-          )}
-          <span className="spacer" />
-          <button type="button" className="secondary" disabled={!hasPlan} onClick={() => window.print()}>
-            Print
-          </button>
-          <button type="button" className="secondary" disabled={!hasPlan} onClick={() => downloadText(`${fileStem(state.gameTitle)}.csv`, planToCsv(state), 'text/csv')}>
-            Export CSV
-          </button>
-        </div>
-        {notice && <div className="notice no-print">{notice}</div>}
-
-        <header className="print-header print-only">
-          <h1>{state.gameTitle || 'Game plan'}</h1>
-        </header>
-
-        {state.players.length === 0 ? (
-          <div className="empty-state">
-            <p>Add your players in the sidebar, choose which rules to enforce, then hit <strong>Randomize lineup</strong>.</p>
-          </div>
-        ) : (
-          <>
-            <FieldTable state={state} dispatch={dispatch} violations={violations} />
-            <p className="hint muted small no-print">
-              Drag a name onto another to swap. Drop it between two rows to insert and shift the others down. Drag inning headers to reorder. Use the lock to
-              keep a player in place when you re-solve.
-            </p>
-            <ViolationList violations={violations} hasPlan={hasPlan} />
-            <BattingOrder state={state} dispatch={dispatch} />
-          </>
-        )}
-      </main>
     </div>
   )
 }

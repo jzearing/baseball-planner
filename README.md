@@ -8,23 +8,28 @@ to a JSON file you can import later).
 ## Features
 
 - Enter the roster, the number of innings and which positions are in play (9 or 10 fielders).
+  Untick a player who is absent to leave them out of the plan without deleting them.
 - A library of constraints, each with a checkbox and its own parameters:
   - No repeated positions (at most N times at the same position)
   - Equal bench time (within ± N innings)
   - No long bench streaks
   - No back-to-back same position
   - Everyone plays a position group (e.g. the infield) at least N times before inning K
-  - Who can play a position (e.g. only these players may pitch or catch)
+  - Who can play a position (e.g. only these players may pitch or catch), with an option to
+    exempt that position from the repeated-position rules so a catcher can catch every inning
   - Positions a given player can play
 - **Randomize lineup** solves inning by inning from the first inning onward. If every rule
   cannot be met, earlier innings are satisfied first and the trouble lands in later innings.
 - Drag a name onto another name to swap; drop it between two rows to insert and shift the
-  others down. Drag inning headers to reorder innings the same way.
+  others down. Drag inning headers to reorder innings the same way. On a phone or tablet,
+  press and hold a name, then drag.
 - Every manual change re-checks the rules: offending names are highlighted with a ⚠ whose
   hover text explains which rule is broken.
 - Lock (🔒) any player in place and **Re-solve unfixed** to randomize everyone else.
 - A batting order with the same drag-to-swap / drop-between-to-insert mechanics.
-- Export to CSV, export/import JSON, and a Print view that fits on one letter sheet.
+- Share a colour image of the plan straight to a text message (on browsers that support
+  sharing files; elsewhere the image downloads), export to CSV, export/import JSON, and a
+  landscape Print view that fits on one letter sheet.
 
 ## Development
 

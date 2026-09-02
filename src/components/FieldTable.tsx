@@ -1,9 +1,8 @@
-import { useState, type DragEvent } from 'react'
 import type { AppState, PlayerId, Violation } from '../lib/types'
 import { benchRowCount, columnList } from '../lib/plan'
 import { positionLabel } from '../lib/positions'
 import type { Action } from '../state'
-import { currentDrag, dropZone, endDrag, startDrag, type DropZone } from './dnd'
+import { dropAttrs, startDrag, useDropTarget } from './dnd'
 
 interface Props {
   state: AppState
@@ -78,40 +77,16 @@ export function FieldTable({ state, dispatch, violations }: Props) {
 }
 
 function InningHeader({ index, dispatch }: { index: number; dispatch: (a: Action) => void }) {
-  const [zone, setZone] = useState<DropZone | null>(null)
-
-  const onDragOver = (e: DragEvent) => {
-    const d = currentDrag()
-    if (!d || d.kind !== 'inning') return
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    const z = dropZone(e, 'x')
-    setZone(d.index === index && z === 'on' ? null : z)
-  }
-  const onDrop = (e: DragEvent) => {
-    e.preventDefault()
-    const d = currentDrag()
-    setZone(null)
-    if (!d || d.kind !== 'inning') return
-    const z = dropZone(e, 'x')
-    if (z === 'on') {
-      if (d.index !== index) dispatch({ type: 'swap-innings', a: d.index, b: index })
-    } else {
-      dispatch({ type: 'move-inning', from: d.index, insertBefore: z === 'before' ? index : index + 1 })
-    }
-    endDrag()
-  }
-
+  const target = { kind: 'inning', index } as const
+  const { zone, ...handlers } = useDropTarget(target, dispatch)
   return (
     <th
       className={`inning-head${zone ? ` zone-${zone}` : ''}`}
       draggable
       title="Drag to reorder innings: drop between headers to insert, on a header to swap"
-      onDragStart={(e) => startDrag(e, { kind: 'inning', index })}
-      onDragEnd={endDrag}
-      onDragOver={onDragOver}
-      onDragLeave={() => setZone(null)}
-      onDrop={onDrop}
+      onDragStart={(e) => startDrag(e, target)}
+      {...handlers}
+      {...dropAttrs(target, true)}
     >
       <span className="grip" aria-hidden>
         ⋮⋮
@@ -132,29 +107,8 @@ interface CellProps {
 }
 
 function Cell({ inning, index, playerId, name, fixed, violations, dispatch }: CellProps) {
-  const [zone, setZone] = useState<DropZone | null>(null)
-
-  const onDragOver = (e: DragEvent) => {
-    const d = currentDrag()
-    if (!d || d.kind !== 'cell' || d.inning !== inning) return
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    const z = dropZone(e, 'y')
-    setZone(d.index === index && z === 'on' ? null : z)
-  }
-  const onDrop = (e: DragEvent) => {
-    e.preventDefault()
-    const d = currentDrag()
-    setZone(null)
-    if (!d || d.kind !== 'cell' || d.inning !== inning) return
-    const z = dropZone(e, 'y')
-    if (z === 'on') {
-      if (d.index !== index) dispatch({ type: 'swap-cell', inning, a: d.index, b: index })
-    } else {
-      dispatch({ type: 'move-cell', inning, from: d.index, insertBefore: z === 'before' ? index : index + 1 })
-    }
-    endDrag()
-  }
+  const target = { kind: 'cell', inning, index } as const
+  const { zone, ...handlers } = useDropTarget(target, dispatch)
 
   const classes = ['cell']
   if (!playerId) classes.push('empty')
@@ -169,13 +123,10 @@ function Cell({ inning, index, playerId, name, fixed, violations, dispatch }: Ce
         className={classes.join(' ')}
         draggable={!!playerId}
         onDragStart={(e) => {
-          if (!playerId) return
-          startDrag(e, { kind: 'cell', inning, index })
+          if (playerId) startDrag(e, target)
         }}
-        onDragEnd={endDrag}
-        onDragOver={onDragOver}
-        onDragLeave={() => setZone(null)}
-        onDrop={onDrop}
+        {...handlers}
+        {...dropAttrs(target, !!playerId)}
       >
         <span className="name">{playerId ? name : '—'}</span>
         {violations.length > 0 && (

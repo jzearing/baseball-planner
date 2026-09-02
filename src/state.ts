@@ -19,6 +19,7 @@ export type Action =
   | { type: 'set-title'; title: string }
   | { type: 'add-players'; names: string[] }
   | { type: 'rename-player'; id: PlayerId; name: string }
+  | { type: 'toggle-player-active'; id: PlayerId }
   | { type: 'remove-player'; id: PlayerId }
   | { type: 'set-innings'; count: number }
   | { type: 'toggle-position'; position: PositionId }
@@ -53,12 +54,17 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'set-title':
       return { ...state, gameTitle: action.title }
     case 'add-players': {
-      const added = action.names.map((n) => n.trim()).filter(Boolean).map((name) => ({ id: newId('p'), name }))
+      const added = action.names.map((n) => n.trim()).filter(Boolean).map((name) => ({ id: newId('p'), name, active: true }))
       if (added.length === 0) return state
       return withRoster(state, [...state.players, ...added])
     }
     case 'rename-player':
       return { ...state, players: state.players.map((p) => (p.id === action.id ? { ...p, name: action.name } : p)) }
+    case 'toggle-player-active':
+      return withRoster(
+        state,
+        state.players.map((p) => (p.id === action.id ? { ...p, active: !p.active } : p)),
+      )
     case 'remove-player': {
       const next = withRoster(state, state.players.filter((p) => p.id !== action.id))
       next.constraints = next.constraints.map((c) => {

@@ -1,7 +1,6 @@
-import { useState, type DragEvent } from 'react'
 import type { AppState } from '../lib/types'
 import type { Action } from '../state'
-import { currentDrag, dropZone, endDrag, startDrag, type DropZone } from './dnd'
+import { dropAttrs, startDrag, useDropTarget } from './dnd'
 
 interface Props {
   state: AppState
@@ -32,38 +31,10 @@ export function BattingOrder({ state, dispatch }: Props) {
 }
 
 function Batter({ index, name, dispatch }: { index: number; name: string; dispatch: (a: Action) => void }) {
-  const [zone, setZone] = useState<DropZone | null>(null)
-  const onDragOver = (e: DragEvent) => {
-    const d = currentDrag()
-    if (!d || d.kind !== 'batter') return
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    const z = dropZone(e, 'y')
-    setZone(d.index === index && z === 'on' ? null : z)
-  }
-  const onDrop = (e: DragEvent) => {
-    e.preventDefault()
-    const d = currentDrag()
-    setZone(null)
-    if (!d || d.kind !== 'batter') return
-    const z = dropZone(e, 'y')
-    if (z === 'on') {
-      if (d.index !== index) dispatch({ type: 'swap-batters', a: d.index, b: index })
-    } else {
-      dispatch({ type: 'move-batter', from: d.index, insertBefore: z === 'before' ? index : index + 1 })
-    }
-    endDrag()
-  }
+  const target = { kind: 'batter', index } as const
+  const { zone, ...handlers } = useDropTarget(target, dispatch)
   return (
-    <li
-      className={`batter${zone ? ` zone-${zone}` : ''}`}
-      draggable
-      onDragStart={(e) => startDrag(e, { kind: 'batter', index })}
-      onDragEnd={endDrag}
-      onDragOver={onDragOver}
-      onDragLeave={() => setZone(null)}
-      onDrop={onDrop}
-    >
+    <li className={`batter${zone ? ` zone-${zone}` : ''}`} draggable onDragStart={(e) => startDrag(e, target)} {...handlers} {...dropAttrs(target, true)}>
       <span className="order">{index + 1}</span>
       <span className="name">{name}</span>
     </li>
