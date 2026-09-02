@@ -3,6 +3,7 @@ import { BattingOrder } from './components/BattingOrder'
 import { ConstraintPanel } from './components/ConstraintPanel'
 import { installTouchDnd } from './components/dnd'
 import { FieldTable } from './components/FieldTable'
+import { QrModal } from './components/QrModal'
 import { RosterEditor } from './components/RosterEditor'
 import { SettingsPanel } from './components/SettingsPanel'
 import { Tutorial } from './components/Tutorial'
@@ -11,6 +12,7 @@ import { evaluateAll, makeContext } from './lib/constraints'
 import { planToCsv } from './lib/csv'
 import { renderPlanImage } from './lib/image'
 import { activePlayers } from './lib/plan'
+import { decodeShareFragment, encodeShareFragment, shareUrl } from './lib/share'
 import { defaultState, downloadText, exportJson, loadState, markTutorialSeen, parseImport, saveState, tutorialSeen } from './lib/storage'
 import { reducer } from './state'
 
@@ -23,12 +25,14 @@ export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, () => loadState() ?? defaultState())
   const [notice, setNotice] = useState<string | null>(null)
   const [showTutorial, setShowTutorial] = useState(() => !tutorialSeen())
+  const [qrUrl, setQrUrl] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     saveState(state)
   }, [state])
+
 
   // Touch devices get no native drag events; this adds press-and-hold dragging.
   useEffect(() => {
@@ -50,6 +54,63 @@ export default function App() {
   const flash = (msg: string) => {
     setNotice(msg)
     window.setTimeout(() => setNotice(null), 4000)
+  }
+
+  // Opened from a share link: load the setup it carries, then drop the fragment
+  // so a reload does not overwrite later edits.
+  useEffect(() => {
+    let cancelled = false
+    const openFromHash = () => {
+      const fragment = window.location.hash
+      if (!fragment.startsWith('#s=')) return
+      decodeShareFragment(fragment)
+        .then((shared) => {
+          if (cancelled || !shared) return
+          const current = loadState()
+          const hasOwn = !!current && current.players.length > 0
+          if (hasOwn && !window.confirm('This link contains a shared lineup. Replace your current roster, rules and plan with it?')) return
+          dispatch({ type: 'import', state: shared })
+          flash('Loaded the shared lineup.')
+        })
+        .catch((err: unknown) => flash(`Could not open the share link: ${err instanceof Error ? err.message : String(err)}`))
+        .finally(() => {
+          if (!cancelled) window.history.replaceState(null, '', window.location.pathname + window.location.search)
+        })
+    }
+    openFromHash()
+    window.addEventListener('hashchange', openFromHash)
+    return () => {
+      cancelled = true
+      window.removeEventListener('hashchange', openFromHash)
+    }
+  }, [])
+
+  const onShareLink = async () => {
+    try {
+      const url = shareUrl(await encodeShareFragment(state))
+      const title = state.gameTitle || 'Lineup plan'
+      if (typeof navigator.share === 'function') {
+        try {
+          await navigator.share({ url, title, text: `${title} – open this link to see and edit the lineup` })
+          return
+        } catch (err) {
+          if (err instanceof Error && err.name === 'AbortError') return
+          // Sharing failed (e.g. desktop browser without share targets); fall back to the clipboard.
+        }
+      }
+      await navigator.clipboard.writeText(url)
+      flash('Share link copied. Paste it into a text or email; it opens the full setup on any phone or computer.')
+    } catch (err) {
+      flash(`Could not build the share link: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+
+  const onShowQr = async () => {
+    try {
+      setQrUrl(shareUrl(await encodeShareFragment(state)))
+    } catch (err) {
+      flash(`Could not build the share link: ${err instanceof Error ? err.message : String(err)}`)
+    }
   }
 
   const closeTutorial = () => {
@@ -161,6 +222,12 @@ export default function App() {
         <section className="panel">
           <h2>Save &amp; load</h2>
           <div className="row wrap">
+            <button type="button" className="primary" onClick={() => void onShareLink()} disabled={state.players.length === 0} title="A link that carries the whole setup; whoever opens it gets an editable copy">
+              Share link
+            </button>
+            <button type="button" className="secondary" onClick={() => void onShowQr()} disabled={state.players.length === 0} title="Show the share link as a QR code to scan">
+              QR code
+            </button>
             <button type="button" className="secondary" onClick={() => downloadText(`${fileStem(state.gameTitle)}.json`, exportJson(state), 'application/json')}>
               Export JSON
             </button>
@@ -188,10 +255,14 @@ export default function App() {
               Reset
             </button>
           </div>
-          <p className="muted small">Your roster, rules and plan are saved automatically in this browser.</p>
+          <p className="muted small">
+            Your roster, rules and plan are saved automatically in this browser. Share link packs the whole setup into a URL so another coach can open an
+            editable copy on their phone; nothing is uploaded anywhere.
+          </p>
         </section>
       </aside>
       <Tutorial open={showTutorial} onClose={closeTutorial} />
+      <QrModal key={qrUrl ?? ''} url={qrUrl} title={state.gameTitle} onClose={() => setQrUrl(null)} />
     </div>
   )
 }

@@ -697,6 +697,23 @@ body.touch-drag-active {
   border-top: 1px solid var(--line);
   padding-top: 0.75rem;
 }
+.qr-modal {
+  max-width: 44rem;
+  text-align: center;
+}
+.qr-modal .modal-actions {
+  text-align: left;
+}
+/* The qrcode renderer writes an inline pixel size on the canvas; override it so the
+   code always scales to the modal instead of overflowing it. */
+.qr-canvas {
+  display: block;
+  margin: 0.75rem auto 1rem;
+  width: 100% !important;
+  max-width: 560px;
+  height: auto !important;
+  image-rendering: pixelated;
+}
 
 /* ---------- print: one letter sheet ---------- */
 /* Some browsers (Safari, iOS) ignore @page margins, so the content also pads itself. */
