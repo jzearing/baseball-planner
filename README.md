@@ -1,0 +1,43 @@
+# Lineup Planner
+
+A single-page app that helps youth baseball coaches plan which player fields which
+position each inning, plus a batting order. Everything runs in the browser: there is
+no backend, and the roster, rules and plan are saved to `localStorage` (or exported
+to a JSON file you can import later).
+
+## Features
+
+- Enter the roster, the number of innings and which positions are in play (9 or 10 fielders).
+- A library of constraints, each with a checkbox and its own parameters:
+  - No repeated positions (at most N times at the same position)
+  - Equal bench time (within ± N innings)
+  - No long bench streaks
+  - No back-to-back same position
+  - Everyone plays a position group (e.g. the infield) at least N times before inning K
+  - Who can play a position (e.g. only these players may pitch or catch)
+  - Positions a given player can play
+- **Randomize lineup** solves inning by inning from the first inning onward. If every rule
+  cannot be met, earlier innings are satisfied first and the trouble lands in later innings.
+- Drag a name onto another name to swap; drop it between two rows to insert and shift the
+  others down. Drag inning headers to reorder innings the same way.
+- Every manual change re-checks the rules: offending names are highlighted with a ⚠ whose
+  hover text explains which rule is broken.
+- Lock (🔒) any player in place and **Re-solve unfixed** to randomize everyone else.
+- A batting order with the same drag-to-swap / drop-between-to-insert mechanics.
+- Export to CSV, export/import JSON, and a Print view that fits on one letter sheet.
+
+## Development
+
+```sh
+npm install
+npm run dev      # start the dev server
+npm test         # run the unit tests (vitest)
+npm run build    # type-check and build to dist/
+```
+
+## Deploying to GitHub Pages
+
+The workflow in `.github/workflows/deploy.yml` builds the site and publishes it with
+GitHub Pages on every push to `main`. Turn it on once in the repository settings:
+**Settings → Pages → Build and deployment → Source: GitHub Actions**. The site is then
+served at `https://<user>.github.io/<repo>/`.
