@@ -20,6 +20,8 @@ const RULE_REQUEST_URL =
     body: ['**What should the rule enforce?**', '', '', '**Example of a lineup it should allow or reject:**', '', '', '**Sport:** baseball / soccer'].join('\n'),
   }).toString()
 
+const FEEDBACK_EMAIL_URL = 'mailto:jzearing@gmail.com?' + new URLSearchParams({ subject: 'Lineup Planner feedback' }).toString()
+
 export function ConstraintPanel({ state, dispatch, counts }: Props) {
   const repeatable = CONSTRAINT_DEFS.filter((d) => d.repeatable)
   return (
@@ -55,7 +57,7 @@ export function ConstraintPanel({ state, dispatch, counts }: Props) {
         <a href={RULE_REQUEST_URL} target="_blank" rel="noreferrer">
           Suggest one on GitHub
         </a>{' '}
-        (needs a free GitHub account).
+        (needs a free GitHub account), or email feedback to <a href={FEEDBACK_EMAIL_URL}>jzearing@gmail.com</a>.
       </p>
     </section>
   )
