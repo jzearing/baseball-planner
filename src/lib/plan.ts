@@ -130,6 +130,33 @@ export function moveInColumn(state: AppState, inningIdx: number, from: number, i
   })
 }
 
+/**
+ * Swap two players across innings. The player at (fromInning, fromIndex) trades
+ * places with the player at (toInning, toIndex) in BOTH innings, so each inning
+ * still lists every player exactly once. Dropping onto an empty slot moves the
+ * dragged player into it and leaves their old slot in that inning empty.
+ */
+export function swapAcrossInnings(state: AppState, fromInning: number, fromIndex: number, toInning: number, toIndex: number): Inning[] {
+  if (fromInning === toInning) return swapInColumn(state, fromInning, fromIndex, toIndex)
+  const rows = benchRowCount(state)
+  const fromList = columnList(state.plan[fromInning], state.positions, rows)
+  const toList = columnList(state.plan[toInning], state.positions, rows)
+  const a = fromList[fromIndex] ?? null
+  const b = toList[toIndex] ?? null
+  if (!a && !b) return state.plan
+  return state.plan.map((inn, i) => {
+    if (i !== fromInning && i !== toInning) return inn
+    const list = i === fromInning ? fromList : toList
+    // In each inning, exchange the slot holding A with the slot holding B.
+    const ia = a ? list.indexOf(a) : -1
+    const ib = b ? list.indexOf(b) : -1
+    const x = i === fromInning ? fromIndex : ia
+    const y = i === toInning ? toIndex : ib
+    if (x < 0 || y < 0 || x === y) return inn
+    return writeColumn(inn, state.positions, swapItems(list, x, y))
+  })
+}
+
 export function toggleFixed(plan: Inning[], inningIdx: number, playerId: PlayerId): Inning[] {
   return plan.map((inn, i) => {
     if (i !== inningIdx) return inn

@@ -205,8 +205,9 @@ export default function App() {
             <div className="plan-area">
               <FieldTable state={state} dispatch={dispatch} violations={violations} />
               <p className="hint muted small no-print">
-                Drag a name onto another to swap. Drop it between two rows to insert and shift the others down. Drag inning headers to reorder. On a touch
-                screen, press and hold a name, then drag. Use the lock to keep a player in place when you re-solve.
+                Drag a name onto another to swap. Drop it between two rows to insert and shift the others down. Drop a name onto a name in another inning
+                to trade those two players in both innings. Drag inning headers to reorder. On a touch screen, press and hold a name, then drag. Use the
+                lock to keep a player in place when you re-solve.
               </p>
               <ViolationList violations={violations} hasPlan={hasPlan} />
             </div>

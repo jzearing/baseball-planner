@@ -4,6 +4,7 @@ import {
   clearFixed,
   moveInColumn,
   moveItem,
+  swapAcrossInnings,
   normalizeBattingOrder,
   normalizePlan,
   swapInColumn,
@@ -32,6 +33,7 @@ export type Action =
   | { type: 'shuffle-batting' }
   | { type: 'swap-cell'; inning: number; a: number; b: number }
   | { type: 'move-cell'; inning: number; from: number; insertBefore: number }
+  | { type: 'swap-across'; fromInning: number; fromIndex: number; toInning: number; toIndex: number }
   | { type: 'swap-innings'; a: number; b: number }
   | { type: 'move-inning'; from: number; insertBefore: number }
   | { type: 'swap-batters'; a: number; b: number }
@@ -115,6 +117,8 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, plan: swapInColumn(state, action.inning, action.a, action.b) }
     case 'move-cell':
       return { ...state, plan: moveInColumn(state, action.inning, action.from, action.insertBefore) }
+    case 'swap-across':
+      return { ...state, plan: swapAcrossInnings(state, action.fromInning, action.fromIndex, action.toInning, action.toIndex) }
     case 'swap-innings':
       return { ...state, plan: swapItems<Inning>(state.plan, action.a, action.b) }
     case 'move-inning':

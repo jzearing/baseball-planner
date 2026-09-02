@@ -19,7 +19,7 @@ const STEPS: { title: string; body: string }[] = [
   },
   {
     title: 'Adjust by dragging',
-    body: 'Drag a name onto another to swap them. Drop it between two rows to slide it in and shift the others down. Drag inning headers to reorder innings. On a phone, press and hold a name, then drag.',
+    body: 'Drag a name onto another to swap them. Drop it between two rows to slide it in and shift the others down. Drop a name onto a name in a different inning to trade those two players in both innings. Drag inning headers to reorder innings. On a phone, press and hold a name, then drag.',
   },
   {
     title: 'Watch for warnings',

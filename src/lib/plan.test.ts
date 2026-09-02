@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { columnList, moveItem, normalizeInning, swapItems, writeColumn } from './plan'
+import { columnList, moveItem, normalizeInning, swapAcrossInnings, swapItems, writeColumn } from './plan'
+import { coerceState, defaultState } from './storage'
 import type { Inning, Player } from './types'
 
 const players: Player[] = ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id, name: id.toUpperCase(), active: true }))
@@ -34,6 +35,43 @@ describe('normalizeInning', () => {
     expect(inn.positions).toEqual({ P: 'a', C: null, '1B': null })
     expect(inn.bench).toEqual(['c', 'b', 'd', 'e'])
     expect(inn.fixed).toEqual(['a'])
+  })
+})
+
+describe('swapAcrossInnings', () => {
+  function state() {
+    const s = defaultState()
+    s.positions = ['C', 'P', '1B']
+    s.inningCount = 2
+    s.players = ['eli', 'lee', 'ann', 'bob'].map((id) => ({ id, name: id, active: true }))
+    s.plan = [
+      { positions: { C: 'eli', P: 'ann', '1B': 'bob' }, bench: ['lee'], fixed: [] },
+      { positions: { C: 'lee', P: 'eli', '1B': 'ann' }, bench: ['bob'], fixed: ['lee'] },
+    ]
+    return coerceState(s)
+  }
+  it('trades the two players in both innings', () => {
+    // Drag Eli (C, inning 1) onto Lee (C, inning 2).
+    const plan = swapAcrossInnings(state(), 0, 0, 1, 0)
+    expect(plan[0].positions).toEqual({ C: 'lee', P: 'ann', '1B': 'bob' })
+    expect(plan[0].bench).toEqual(['eli'])
+    expect(plan[1].positions).toEqual({ C: 'eli', P: 'lee', '1B': 'ann' })
+    expect(plan[1].bench).toEqual(['bob'])
+    expect(plan[1].fixed).toEqual(['lee'])
+  })
+  it('moves into an empty slot and empties the old one', () => {
+    const s = state()
+    s.plan[1].positions['1B'] = null
+    s.plan[1].bench = ['ann', 'bob']
+    // Drag Eli (C, inning 1) onto the empty 1B in inning 2: inning 1 unchanged, inning 2 Eli -> 1B, P empty.
+    const plan = swapAcrossInnings(s, 0, 0, 1, 2)
+    expect(plan[0]).toEqual(s.plan[0])
+    expect(plan[1].positions).toEqual({ C: 'lee', P: null, '1B': 'eli' })
+  })
+  it('falls back to an in-inning swap when both cells are in the same inning', () => {
+    const plan = swapAcrossInnings(state(), 0, 0, 0, 3)
+    expect(plan[0].positions.C).toBe('lee')
+    expect(plan[0].bench).toEqual(['eli'])
   })
 })
 

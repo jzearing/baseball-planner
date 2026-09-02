@@ -21,8 +21,9 @@ to a JSON file you can import later).
 - **Randomize lineup** solves inning by inning from the first inning onward. If every rule
   cannot be met, earlier innings are satisfied first and the trouble lands in later innings.
 - Drag a name onto another name to swap; drop it between two rows to insert and shift the
-  others down. Drag inning headers to reorder innings the same way. On a phone or tablet,
-  press and hold a name, then drag.
+  others down. Drop a name onto a name in a different inning to trade those two players in
+  both innings, so each inning still lists everyone once. Drag inning headers to reorder
+  innings the same way. On a phone or tablet, press and hold a name, then drag.
 - Every manual change re-checks the rules: offending names are highlighted with a ⚠ whose
   hover text explains which rule is broken.
 - Lock (🔒) any player in place and **Re-solve unfixed** to randomize everyone else.
