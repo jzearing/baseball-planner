@@ -4,6 +4,23 @@ import { normalizeBattingOrder, normalizePlan } from './plan'
 import { DEFAULT_POSITIONS, INFIELD_POSITIONS, POSITION_CATALOG, sortPositions } from './positions'
 
 export const STORAGE_KEY = 'little-league-planner:v1'
+export const TUTORIAL_KEY = 'little-league-planner:tutorial-seen'
+
+export function tutorialSeen(): boolean {
+  try {
+    return localStorage.getItem(TUTORIAL_KEY) === '1'
+  } catch {
+    return true
+  }
+}
+
+export function markTutorialSeen(): void {
+  try {
+    localStorage.setItem(TUTORIAL_KEY, '1')
+  } catch {
+    // Storage unavailable; the tutorial will simply show again next time.
+  }
+}
 
 export function defaultState(): AppState {
   const base: AppState = {
