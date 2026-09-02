@@ -30,6 +30,9 @@ to a JSON file you can import later).
 - Share a colour image of the plan straight to a text message (on browsers that support
   sharing files; elsewhere the image downloads), export to CSV, export/import JSON, and a
   landscape Print view that fits on one letter sheet.
+- **Share link** packs the whole setup (roster, rules, plan, batting order) into the URL
+  fragment as deflate-compressed base64url JSON. Anyone who opens the link gets an editable
+  copy in their own browser; the fragment is never sent to a server.
 
 ## Development
 
