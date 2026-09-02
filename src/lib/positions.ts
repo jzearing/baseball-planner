@@ -66,6 +66,10 @@ export interface SportDef {
   hasBattingOrder: boolean
   /** Extra solver cost for leaving this position empty on a short roster. */
   emptyPenalty: (id: PositionId) => number
+  /** Accent colour used in the share image header. */
+  accentColor: string
+  /** Favicon file in public/. */
+  favicon: string
 }
 
 export const SPORTS: Record<Sport, SportDef> = {
@@ -84,6 +88,8 @@ export const SPORTS: Record<Sport, SportDef> = {
     ],
     hasBattingOrder: true,
     emptyPenalty: (id) => (positionDef(id).group === 'outfield' ? 0 : 0.2),
+    accentColor: '#1d5c3a',
+    favicon: 'favicon.svg',
   },
   soccer: {
     id: 'soccer',
@@ -109,6 +115,8 @@ export const SPORTS: Record<Sport, SportDef> = {
     ],
     hasBattingOrder: false,
     emptyPenalty: (id) => (id === 'GK' ? 1 : 0.2),
+    accentColor: '#1d4ed8',
+    favicon: 'favicon-soccer.svg',
   },
 }
 

@@ -21,6 +21,15 @@
   background: var(--bg);
 }
 
+/* Soccer: cooler blue accent, with locks shifted to purple so they stay distinct. */
+:root[data-sport='soccer'] {
+  --bg: #f3f5f8;
+  --accent: #1d4ed8;
+  --accent-soft: #dbeafe;
+  --fixed: #7c3aed;
+  --fixed-bg: #ede9fe;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -237,12 +246,15 @@ button.icon:hover {
   gap: 0.3rem;
 }
 .segmented {
-  display: inline-flex;
+  display: flex;
+  width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
 }
 .segmented button {
+  flex: 1 1 0;
+  justify-content: center;
   background: #fff;
   color: var(--ink);
   border: none;

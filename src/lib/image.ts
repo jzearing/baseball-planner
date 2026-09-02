@@ -13,7 +13,7 @@ const GROUP_FILL: Record<PositionGroup | 'bench', string> = {
   forward: '#fecaca',
   bench: '#e5e7eb',
 }
-const HEADER_FILL = '#1d5c3a'
+const DEFAULT_HEADER_FILL = '#1d5c3a'
 const INK = '#1f2a24'
 const LINE = '#9aa39d'
 
@@ -33,6 +33,7 @@ export function renderPlanImage(state: AppState): Promise<Blob> {
   const headH = 38
   const labelW = 150
   const cellW = Math.max(110, Math.min(160, 900 / Math.max(1, innings)))
+  const HEADER_FILL = sportDef(state.sport).accentColor || DEFAULT_HEADER_FILL
   const hasBatting = sportDef(state.sport).hasBattingOrder
   const battingW = hasBatting ? 200 : 0
   const gap = hasBatting ? 28 : 0

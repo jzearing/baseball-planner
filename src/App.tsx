@@ -37,6 +37,21 @@ export default function App() {
   }, [state])
 
 
+  // Theme, favicon and title follow the sport.
+  useEffect(() => {
+    const def = sportDef(state.sport)
+    document.documentElement.dataset.sport = state.sport
+    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+    link.type = 'image/svg+xml'
+    link.href = `${import.meta.env.BASE_URL}${def.favicon}`
+    document.title = `Lineup Planner · ${def.name}`
+  }, [state.sport])
+
   // Touch devices get no native drag events; this adds press-and-hold dragging.
   useEffect(() => {
     if (!rootRef.current) return
@@ -154,7 +169,9 @@ export default function App() {
       <aside className="sidebar rail-left no-print">
         <header className="brand">
           <div className="row">
-            <h1>⚾ Lineup Planner</h1>
+            <h1>
+              <span aria-hidden>{sport.icon}</span> Lineup Planner
+            </h1>
             <span className="spacer" />
             <button type="button" className="secondary small-btn" onClick={() => setShowTutorial(true)} title="Show the how-to guide">
               Help
