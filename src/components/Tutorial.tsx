@@ -11,7 +11,7 @@ const STEPS: { title: string; body: string }[] = [
   },
   {
     title: 'Pick the rules',
-    body: 'Tick the rules you want on the right and adjust their numbers. Add rules for who may catch or pitch, or which positions a player can play. Tick the exemption on a catcher or pitcher rule so those players can repeat.',
+    body: 'Tick the rules you want on the right and adjust their numbers. Add rules for who may catch or pitch, or which positions a player can play. Tick the exemption on a catcher or pitcher rule so those players can repeat. The Preferences tab holds softer wishes, like a player who would like to play shortstop, which the solver honours when the rules allow.',
   },
   {
     title: 'Randomize the lineup',
@@ -19,19 +19,19 @@ const STEPS: { title: string; body: string }[] = [
   },
   {
     title: 'Adjust by dragging',
-    body: 'Drag a name onto another to swap them. Drop it between two rows to slide it in and shift the others down. Drag inning headers to reorder innings. On a phone, press and hold a name, then drag.',
+    body: 'Drag a name onto another to swap them. Drop it between two rows to slide it in and shift the others down. Drop a name onto a name in a different inning to trade those two players in both innings. Drag inning headers to reorder innings. On a phone, press and hold a name, then drag.',
   },
   {
     title: 'Watch for warnings',
     body: 'After every change the rules are re-checked. A highlighted name with a ⚠ breaks a rule; hover or tap the icon to see which one.',
   },
   {
-    title: 'Lock and re-solve',
-    body: 'Use the 🔒 on a name to keep that player where they are, then press Re-solve unfixed to reshuffle everyone else around them.',
+    title: 'Lock and randomize again',
+    body: 'Use the 🔒 on a name to keep that player where they are. Randomize lineup always leaves locked players in place and re-solves everyone else around them. Unlock all clears the locks.',
   },
   {
     title: 'Batting order',
-    body: 'The batting order sits under the field table. Shuffle it, or drag names to swap or insert just like on the field.',
+    body: 'The batting order sits under the field table. Shuffle it, or drag names to swap or insert just like on the field. Lock a batter to keep them in their spot when you shuffle.',
   },
   {
     title: 'Print, share and save',

@@ -3,6 +3,7 @@ import { BENCH } from './types'
 import { evaluateAll, makeContext, solverCostAll } from './constraints'
 import { activePlayers, emptyInning, slotOf } from './plan'
 import { positionDef } from './positions'
+import { preferenceCost } from './preferences'
 import { randomInt, shuffle, type Rng } from './rng'
 
 export interface SolveOptions {
@@ -46,21 +47,34 @@ export function solvePlan(state: AppState, opts: SolveOptions): Inning[] {
     const candidates: (PlayerId | null)[] = [...freePlayers]
     while (candidates.length < slots.length) candidates.push(null)
 
+    // Locked bench players keep their exact bench row; free bench players fill the gaps in order.
+    const benchRows = Math.max(0, players.length - state.positions.length)
+    const benchTemplate: (PlayerId | null)[] = Array<PlayerId | null>(benchRows).fill(null)
+    for (const [pid, s] of fixedSlots) {
+      if (s !== BENCH) continue
+      const at = base ? base.bench.indexOf(pid) : -1
+      const row = at >= 0 && at < benchRows && benchTemplate[at] === null ? at : benchTemplate.indexOf(null)
+      if (row >= 0) benchTemplate[row] = pid
+    }
+
     const build = (perm: (PlayerId | null)[]): Inning => {
       const inn = emptyInning(state.positions, [])
       inn.fixed = [...fixedIds]
-      for (const [pid, s] of fixedSlots) {
-        if (s === BENCH) inn.bench.push(pid)
-        else inn.positions[s] = pid
-      }
+      for (const [pid, s] of fixedSlots) if (s !== BENCH) inn.positions[s] = pid
+      const bench = [...benchTemplate]
+      let next = 0
       perm.forEach((pid, k) => {
         const s = slots[k]
         if (s === BENCH) {
-          if (pid) inn.bench.push(pid)
+          if (!pid) return
+          while (next < bench.length && bench[next] !== null) next++
+          if (next < bench.length) bench[next] = pid
+          else bench.push(pid)
         } else {
           inn.positions[s] = pid
         }
       })
+      inn.bench = bench.filter((x): x is PlayerId => x !== null)
       return inn
     }
 
@@ -70,6 +84,7 @@ export function solvePlan(state: AppState, opts: SolveOptions): Inning[] {
       return (
         evaluateAll(ctx, state.constraints).length +
         solverCostAll(ctx, state.constraints) +
+        preferenceCost(ctx, state.preferences) +
         emptyInfieldPenalty(inn, state.positions)
       )
     }

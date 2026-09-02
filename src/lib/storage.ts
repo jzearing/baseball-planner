@@ -30,8 +30,10 @@ export function defaultState(): AppState {
     inningCount: 6,
     positions: [...DEFAULT_POSITIONS],
     constraints: [],
+    preferences: [],
     plan: [],
     battingOrder: [],
+    battingFixed: [],
   }
   base.constraints = normalizeConstraints([]).map((c) =>
     c.type === 'no-repeat-position' || c.type === 'equal-sitting' || c.type === 'no-consecutive-bench' ? { ...c, enabled: true } : c,
@@ -98,6 +100,17 @@ export function coerceState(raw: unknown): AppState {
       )
     : []
 
+  const preferences = Array.isArray(r.preferences)
+    ? r.preferences
+        .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object')
+        .map((x, i) => ({
+          id: typeof x.id === 'string' ? x.id : `pref_${i}`,
+          enabled: x.enabled !== false,
+          playerId: typeof x.playerId === 'string' ? x.playerId : '',
+          positions: Array.isArray(x.positions) ? x.positions.filter((v): v is string => typeof v === 'string' && valid.has(v)) : [],
+        }))
+    : []
+
   const state: AppState = {
     version: 1,
     gameTitle: typeof r.gameTitle === 'string' ? r.gameTitle : '',
@@ -105,11 +118,14 @@ export function coerceState(raw: unknown): AppState {
     inningCount,
     positions: positions.length > 0 ? positions : d.positions,
     constraints,
+    preferences,
     plan,
     battingOrder: Array.isArray(r.battingOrder) ? r.battingOrder.filter((x): x is string => typeof x === 'string') : [],
+    battingFixed: Array.isArray(r.battingFixed) ? r.battingFixed.filter((x): x is string => typeof x === 'string') : [],
   }
   state.plan = normalizePlan(state)
   state.battingOrder = normalizeBattingOrder(state.players, state.battingOrder)
+  state.battingFixed = state.battingFixed.filter((pid) => state.battingOrder.includes(pid))
   return state
 }
 

@@ -34,6 +34,14 @@ export interface ConstraintInstance {
   params: Record<string, unknown>
 }
 
+/** A soft wish the solver tries to honour; never flagged as a violation. */
+export interface Preference {
+  id: string
+  enabled: boolean
+  playerId: PlayerId
+  positions: PositionId[]
+}
+
 export interface AppState {
   version: 1
   gameTitle: string
@@ -42,8 +50,11 @@ export interface AppState {
   /** Enabled positions in display order. */
   positions: PositionId[]
   constraints: ConstraintInstance[]
+  preferences: Preference[]
   plan: Inning[]
   battingOrder: PlayerId[]
+  /** Batters whose spot in the order Shuffle must not move. */
+  battingFixed: PlayerId[]
 }
 
 export interface Violation {

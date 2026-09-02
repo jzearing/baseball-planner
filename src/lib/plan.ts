@@ -1,5 +1,6 @@
 import type { AppState, Inning, Player, PlayerId, PositionId, Slot } from './types'
 import { BENCH } from './types'
+import { shuffle, type Rng } from './rng'
 
 /** Roster members who are playing in this game. */
 export function activePlayers(state: Pick<AppState, 'players'>): Player[] {
@@ -80,6 +81,17 @@ export function normalizeBattingOrder(players: Player[], order: PlayerId[]): Pla
   return out
 }
 
+/** Shuffle the batting order while locked batters keep their exact spots. */
+export function shuffleBattingOrder(order: PlayerId[], fixed: PlayerId[], rng: Rng = Math.random): PlayerId[] {
+  const locked = new Set(fixed)
+  const loose = shuffle(
+    order.filter((pid) => !locked.has(pid)),
+    rng,
+  )
+  let k = 0
+  return order.map((pid) => (locked.has(pid) ? pid : loose[k++]))
+}
+
 /** The players of one inning as a vertical list: positions in order, then bench rows. */
 export function columnList(inning: Inning, positions: PositionId[], benchRows: number): (PlayerId | null)[] {
   const list: (PlayerId | null)[] = positions.map((p) => inning.positions[p] ?? null)
@@ -127,6 +139,33 @@ export function moveInColumn(state: AppState, inningIdx: number, from: number, i
   return state.plan.map((inn, i) => {
     if (i !== inningIdx) return inn
     return writeColumn(inn, state.positions, moveItem(columnList(inn, state.positions, rows), from, insertBefore))
+  })
+}
+
+/**
+ * Swap two players across innings. The player at (fromInning, fromIndex) trades
+ * places with the player at (toInning, toIndex) in BOTH innings, so each inning
+ * still lists every player exactly once. Dropping onto an empty slot moves the
+ * dragged player into it and leaves their old slot in that inning empty.
+ */
+export function swapAcrossInnings(state: AppState, fromInning: number, fromIndex: number, toInning: number, toIndex: number): Inning[] {
+  if (fromInning === toInning) return swapInColumn(state, fromInning, fromIndex, toIndex)
+  const rows = benchRowCount(state)
+  const fromList = columnList(state.plan[fromInning], state.positions, rows)
+  const toList = columnList(state.plan[toInning], state.positions, rows)
+  const a = fromList[fromIndex] ?? null
+  const b = toList[toIndex] ?? null
+  if (!a && !b) return state.plan
+  return state.plan.map((inn, i) => {
+    if (i !== fromInning && i !== toInning) return inn
+    const list = i === fromInning ? fromList : toList
+    // In each inning, exchange the slot holding A with the slot holding B.
+    const ia = a ? list.indexOf(a) : -1
+    const ib = b ? list.indexOf(b) : -1
+    const x = i === fromInning ? fromIndex : ia
+    const y = i === toInning ? toIndex : ib
+    if (x < 0 || y < 0 || x === y) return inn
+    return writeColumn(inn, state.positions, swapItems(list, x, y))
   })
 }
 

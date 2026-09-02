@@ -3,6 +3,7 @@ import { BattingOrder } from './components/BattingOrder'
 import { ConstraintPanel } from './components/ConstraintPanel'
 import { installTouchDnd } from './components/dnd'
 import { FieldTable } from './components/FieldTable'
+import { PreferencePanel } from './components/PreferencePanel'
 import { QrModal } from './components/QrModal'
 import { RosterEditor } from './components/RosterEditor'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -26,6 +27,7 @@ export default function App() {
   const [notice, setNotice] = useState<string | null>(null)
   const [showTutorial, setShowTutorial] = useState(() => !tutorialSeen())
   const [qrUrl, setQrUrl] = useState<string | null>(null)
+  const [railTab, setRailTab] = useState<'constraints' | 'preferences'>('constraints')
   const fileInput = useRef<HTMLInputElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -163,23 +165,27 @@ export default function App() {
 
       <main className="main">
         <div className="toolbar no-print">
-          <button type="button" className="primary" disabled={!canSolve} onClick={() => dispatch({ type: 'randomize-lineup' })} title="Build a brand-new plan (clears fixed markers)">
-            Randomize lineup
-          </button>
           <button
             type="button"
-            disabled={!canSolve || !hasPlan}
-            onClick={() => dispatch({ type: 'resolve-keep-fixed' })}
-            title="Randomize everyone except the players you have locked in place"
+            className="primary"
+            disabled={!canSolve}
+            onClick={() => dispatch({ type: 'randomize-lineup' })}
+            title={fixedCount > 0 ? 'Randomize everyone except the locked players' : 'Build a plan that fits the enabled rules'}
           >
-            Re-solve unfixed {fixedCount > 0 && <span className="badge blue">🔒 {fixedCount}</span>}
+            Randomize lineup {fixedCount > 0 && <span className="badge blue">🔒 {fixedCount}</span>}
           </button>
           {fixedCount > 0 && (
-            <button type="button" className="link" onClick={() => dispatch({ type: 'clear-fixed' })}>
+            <button type="button" className="secondary small-btn" onClick={() => dispatch({ type: 'clear-fixed' })} title="Remove every lock on the field plan">
               Unlock all
             </button>
           )}
           <span className="spacer" />
+          <button type="button" className="secondary" onClick={() => void onShareLink()} disabled={state.players.length === 0} title="A link that carries the whole setup; whoever opens it gets an editable copy">
+            Share link
+          </button>
+          <button type="button" className="secondary" onClick={() => void onShowQr()} disabled={state.players.length === 0} title="Show the share link as a QR code to scan">
+            QR code
+          </button>
           <button type="button" className="secondary" disabled={!hasPlan} onClick={() => void onShare()} title="Send a picture of the plan to another coach">
             Share image
           </button>
@@ -205,8 +211,9 @@ export default function App() {
             <div className="plan-area">
               <FieldTable state={state} dispatch={dispatch} violations={violations} />
               <p className="hint muted small no-print">
-                Drag a name onto another to swap. Drop it between two rows to insert and shift the others down. Drag inning headers to reorder. On a touch
-                screen, press and hold a name, then drag. Use the lock to keep a player in place when you re-solve.
+                Drag a name onto another to swap. Drop it between two rows to insert and shift the others down. Drop a name onto a name in another inning
+                to trade those two players in both innings. Drag inning headers to reorder. On a touch screen, press and hold a name, then drag. Lock a
+                player to keep them in place the next time you randomize.
               </p>
               <ViolationList violations={violations} hasPlan={hasPlan} />
             </div>
@@ -218,16 +225,18 @@ export default function App() {
       </main>
 
       <aside className="sidebar rail-right no-print">
-        <ConstraintPanel state={state} dispatch={dispatch} counts={counts} />
+        <div className="tabs" role="tablist">
+          <button type="button" role="tab" aria-selected={railTab === 'constraints'} className={railTab === 'constraints' ? 'active' : ''} onClick={() => setRailTab('constraints')}>
+            Constraints{violations.length > 0 && <span className="badge">⚠ {violations.length}</span>}
+          </button>
+          <button type="button" role="tab" aria-selected={railTab === 'preferences'} className={railTab === 'preferences' ? 'active' : ''} onClick={() => setRailTab('preferences')}>
+            Preferences{state.preferences.length > 0 && <span className="badge grey">{state.preferences.filter((p) => p.enabled).length}</span>}
+          </button>
+        </div>
+        {railTab === 'constraints' ? <ConstraintPanel state={state} dispatch={dispatch} counts={counts} /> : <PreferencePanel state={state} dispatch={dispatch} />}
         <section className="panel">
           <h2>Save &amp; load</h2>
           <div className="row wrap">
-            <button type="button" className="primary" onClick={() => void onShareLink()} disabled={state.players.length === 0} title="A link that carries the whole setup; whoever opens it gets an editable copy">
-              Share link
-            </button>
-            <button type="button" className="secondary" onClick={() => void onShowQr()} disabled={state.players.length === 0} title="Show the share link as a QR code to scan">
-              QR code
-            </button>
             <button type="button" className="secondary" onClick={() => downloadText(`${fileStem(state.gameTitle)}.json`, exportJson(state), 'application/json')}>
               Export JSON
             </button>
@@ -256,8 +265,8 @@ export default function App() {
             </button>
           </div>
           <p className="muted small">
-            Your roster, rules and plan are saved automatically in this browser. Share link packs the whole setup into a URL so another coach can open an
-            editable copy on their phone; nothing is uploaded anywhere.
+            Your roster, rules and plan are saved automatically in this browser. Export JSON keeps a file copy you can import later or on another device.
+            To send the setup to another coach, use Share link or QR code in the toolbar above the plan.
           </p>
         </section>
       </aside>

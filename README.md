@@ -18,14 +18,18 @@ to a JSON file you can import later).
   - Who can play a position (e.g. only these players may pitch or catch), with an option to
     exempt that position from the repeated-position rules so a catcher can catch every inning
   - Positions a given player can play
+- **Preferences** tab: soft wishes such as "Eli would like to play SS". The solver honours
+  them whenever the rules allow, and nothing is flagged when it cannot.
 - **Randomize lineup** solves inning by inning from the first inning onward. If every rule
   cannot be met, earlier innings are satisfied first and the trouble lands in later innings.
 - Drag a name onto another name to swap; drop it between two rows to insert and shift the
-  others down. Drag inning headers to reorder innings the same way. On a phone or tablet,
-  press and hold a name, then drag.
+  others down. Drop a name onto a name in a different inning to trade those two players in
+  both innings, so each inning still lists everyone once. Drag inning headers to reorder
+  innings the same way. On a phone or tablet, press and hold a name, then drag.
 - Every manual change re-checks the rules: offending names are highlighted with a ⚠ whose
   hover text explains which rule is broken.
-- Lock (🔒) any player in place and **Re-solve unfixed** to randomize everyone else.
+- Lock (🔒) any player in place; **Randomize lineup** always leaves locked players where they
+  are and re-solves everyone else. Batters can be locked too, so Shuffle keeps them in their spot.
 - A batting order with the same drag-to-swap / drop-between-to-insert mechanics.
 - Share a colour image of the plan straight to a text message (on browsers that support
   sharing files; elsewhere the image downloads), export to CSV, export/import JSON, and a

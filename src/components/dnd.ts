@@ -43,20 +43,32 @@ export function zoneFromRect(rect: DOMRect, x: number, y: number, axis: 'x' | 'y
   return 'on'
 }
 
-/** Can `item` be dropped on `target` at all? Cells only move within their own inning. */
+/** Can `item` be dropped on `target` at all? */
 export function compatible(item: DragItem, target: DropTarget): boolean {
-  if (item.kind !== target.kind) return false
-  if (item.kind === 'cell' && target.kind === 'cell') return item.inning === target.inning
-  return true
+  return item.kind === target.kind
+}
+
+function crossInning(item: DragItem, target: DropTarget): boolean {
+  return item.kind === 'cell' && target.kind === 'cell' && item.inning !== target.inning
 }
 
 function sameSlot(item: DragItem, target: DropTarget): boolean {
-  return compatible(item, target) && item.index === target.index
+  if (!compatible(item, target) || crossInning(item, target)) return false
+  return item.index === target.index
+}
+
+/** Across innings only a swap makes sense, so the whole cell acts as the swap zone. */
+function effectiveZone(item: DragItem, target: DropTarget, zone: DropZone): DropZone {
+  return crossInning(item, target) ? 'on' : zone
 }
 
 /** The state change a drop produces, or null when it would be a no-op. */
-export function dropAction(item: DragItem, target: DropTarget, zone: DropZone): Action | null {
+export function dropAction(item: DragItem, target: DropTarget, rawZone: DropZone): Action | null {
   if (!compatible(item, target)) return null
+  if (item.kind === 'cell' && target.kind === 'cell' && item.inning !== target.inning) {
+    return { type: 'swap-across', fromInning: item.inning, fromIndex: item.index, toInning: target.inning, toIndex: target.index }
+  }
+  const zone = effectiveZone(item, target, rawZone)
   const insertBefore = zone === 'before' ? target.index : target.index + 1
   if (zone === 'on') {
     if (item.index === target.index) return null
@@ -110,7 +122,7 @@ export function useDropTarget(target: DropTarget, dispatch: (a: Action) => void)
       if (!d || !compatible(d, target)) return
       e.preventDefault()
       e.dataTransfer.dropEffect = 'move'
-      const z = zoneOf(e)
+      const z = effectiveZone(d, target, zoneOf(e))
       setZone(sameSlot(d, target) && z === 'on' ? null : z)
     },
     onDragLeave() {
@@ -254,7 +266,7 @@ export function installTouchDnd(root: HTMLElement, dispatch: (a: Action) => void
       clearHighlight()
       return
     }
-    const zone = zoneFromRect(el.getBoundingClientRect(), x, y, axisOf(target))
+    const zone = effectiveZone(item, target, zoneFromRect(el.getBoundingClientRect(), x, y, axisOf(target)))
     if (sameSlot(item, target) && zone === 'on') {
       clearHighlight()
       return

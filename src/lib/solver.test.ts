@@ -50,6 +50,19 @@ describe('solvePlan', () => {
     expect(next[2].fixed).toEqual(['p4', 'p9'])
   })
 
+  it('honours a preference when the rules allow', () => {
+    const s = roster(12)
+    s.preferences = [{ id: 'pref1', enabled: true, playerId: 'p7', positions: ['SS'] }]
+    let hits = 0
+    for (let seed = 1; seed <= 3; seed++) {
+      const plan = solvePlan(s, { keepFixed: false, rng: seededRng(seed), timeBudgetMs: 1000 })
+      // No-repeat allows SS once; the preference should win that single slot.
+      if (plan.some((inn) => inn.positions.SS === 'p7')) hits++
+      expect(evaluateAll(makeContext(s, plan), s.constraints)).toEqual([])
+    }
+    expect(hits).toBe(3)
+  })
+
   it('handles a roster smaller than the number of positions', () => {
     const s = roster(7)
     const plan = solvePlan(s, { keepFixed: false, rng: seededRng(5) })
