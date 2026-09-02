@@ -3,6 +3,7 @@ import { BattingOrder } from './components/BattingOrder'
 import { ConstraintPanel } from './components/ConstraintPanel'
 import { installTouchDnd } from './components/dnd'
 import { FieldTable } from './components/FieldTable'
+import { QrModal } from './components/QrModal'
 import { RosterEditor } from './components/RosterEditor'
 import { SettingsPanel } from './components/SettingsPanel'
 import { Tutorial } from './components/Tutorial'
@@ -24,6 +25,7 @@ export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, () => loadState() ?? defaultState())
   const [notice, setNotice] = useState<string | null>(null)
   const [showTutorial, setShowTutorial] = useState(() => !tutorialSeen())
+  const [qrUrl, setQrUrl] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -98,6 +100,14 @@ export default function App() {
       }
       await navigator.clipboard.writeText(url)
       flash('Share link copied. Paste it into a text or email; it opens the full setup on any phone or computer.')
+    } catch (err) {
+      flash(`Could not build the share link: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+
+  const onShowQr = async () => {
+    try {
+      setQrUrl(shareUrl(await encodeShareFragment(state)))
     } catch (err) {
       flash(`Could not build the share link: ${err instanceof Error ? err.message : String(err)}`)
     }
@@ -215,6 +225,9 @@ export default function App() {
             <button type="button" className="primary" onClick={() => void onShareLink()} disabled={state.players.length === 0} title="A link that carries the whole setup; whoever opens it gets an editable copy">
               Share link
             </button>
+            <button type="button" className="secondary" onClick={() => void onShowQr()} disabled={state.players.length === 0} title="Show the share link as a QR code to scan">
+              QR code
+            </button>
             <button type="button" className="secondary" onClick={() => downloadText(`${fileStem(state.gameTitle)}.json`, exportJson(state), 'application/json')}>
               Export JSON
             </button>
@@ -249,6 +262,7 @@ export default function App() {
         </section>
       </aside>
       <Tutorial open={showTutorial} onClose={closeTutorial} />
+      <QrModal key={qrUrl ?? ''} url={qrUrl} title={state.gameTitle} onClose={() => setQrUrl(null)} />
     </div>
   )
 }

@@ -697,6 +697,20 @@ body.touch-drag-active {
   border-top: 1px solid var(--line);
   padding-top: 0.75rem;
 }
+.qr-modal {
+  max-width: 34rem;
+  text-align: center;
+}
+.qr-modal .modal-actions {
+  text-align: left;
+}
+.qr-canvas {
+  display: block;
+  margin: 0.75rem auto 1rem;
+  width: min(100%, 480px);
+  height: auto;
+  image-rendering: pixelated;
+}
 
 /* ---------- print: one letter sheet ---------- */
 /* Some browsers (Safari, iOS) ignore @page margins, so the content also pads itself. */

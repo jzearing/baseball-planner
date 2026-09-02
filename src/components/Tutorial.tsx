@@ -35,7 +35,7 @@ const STEPS: { title: string; body: string }[] = [
   },
   {
     title: 'Print, share and save',
-    body: 'Print a one-page landscape sheet, Share image to text a picture to another coach, or Export CSV. Everything is saved in this browser automatically. Share link sends the whole editable setup to someone else; Export and Import JSON keep a file copy.',
+    body: 'Print a one-page landscape sheet, Share image to text a picture to another coach, or Export CSV. Everything is saved in this browser automatically. Share link or QR code sends the whole editable setup to someone else; Export and Import JSON keep a file copy.',
   },
 ]
 

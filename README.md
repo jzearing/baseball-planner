@@ -32,7 +32,8 @@ to a JSON file you can import later).
   landscape Print view that fits on one letter sheet.
 - **Share link** packs the whole setup (roster, rules, plan, batting order) into the URL
   fragment as deflate-compressed base64url JSON. Anyone who opens the link gets an editable
-  copy in their own browser; the fragment is never sent to a server.
+  copy in their own browser; the fragment is never sent to a server. **QR code** shows the
+  same link as a code another coach can scan with their phone camera.
 
 ## Development
 
