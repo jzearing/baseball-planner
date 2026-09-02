@@ -48,6 +48,8 @@ export interface ConstraintDef {
   description: string
   /** Repeatable constraints can be added many times (e.g. one per position). */
   repeatable: boolean
+  /** New instances of "hard" rules (who may play where) go to the top of the list. */
+  addAtTop: boolean
   defaultParams: () => Record<string, unknown>
   evaluate: (ctx: EvalContext, params: Record<string, unknown>, inst: ConstraintInstance) => Violation[]
   /** Optional look-ahead cost used only by the solver on partial plans (lower is better). */
@@ -77,7 +79,24 @@ export function strList(params: Record<string, unknown>, key: string): string[] 
 }
 
 function v(inst: ConstraintInstance, def: ConstraintDef, message: string, inning?: number, playerId?: PlayerId): Violation {
-  return { constraintId: inst.id, constraintName: def.name, message, inning, playerId }
+  // rank and weight are filled in by evaluateAll, which knows the rule's place in the list.
+  return { constraintId: inst.id, constraintName: def.name, rank: 0, weight: 1, message, inning, playerId }
+}
+
+/**
+ * Cost of one violation of the rule at `index` in a list of `total` rules.
+ * Each step up the list is worth ten of the step below, so the solver fixes
+ * higher rules first and only then trades off lower ones.
+ */
+export function rankWeight(index: number, total: number): number {
+  return 10 ** Math.max(0, total - 1 - index)
+}
+
+/** Sum of weights over a set of violations. */
+export function weightedCost(violations: Violation[]): number {
+  let cost = 0
+  for (const v of violations) cost += v.weight
+  return cost
 }
 
 function plural(n: number, word: string): string {
@@ -92,6 +111,7 @@ const noRepeatPosition: ConstraintDef = {
   name: 'No repeated positions',
   description: 'No player plays the same position more than a set number of times.',
   repeatable: false,
+  addAtTop: false,
   defaultParams: () => ({ maxTimes: 1 }),
   evaluate(ctx, params, inst) {
     const max = Math.max(1, num(params, 'maxTimes', 1))
@@ -119,6 +139,7 @@ const equalSitting: ConstraintDef = {
   name: 'Equal bench time',
   description: 'Every player sits the same number of innings, within a tolerance.',
   repeatable: false,
+  addAtTop: false,
   defaultParams: () => ({ tolerance: 1 }),
   evaluate(ctx, params, inst) {
     const tol = Math.max(0, num(params, 'tolerance', 1))
@@ -176,6 +197,7 @@ const noConsecutiveBench: ConstraintDef = {
   name: 'No long bench streaks',
   description: 'No player sits more than a set number of innings in a row.',
   repeatable: false,
+  addAtTop: false,
   defaultParams: () => ({ maxConsecutive: 1 }),
   evaluate(ctx, params, inst) {
     const max = Math.max(1, num(params, 'maxConsecutive', 1))
@@ -200,6 +222,7 @@ const noConsecutiveSamePosition: ConstraintDef = {
   name: 'No back-to-back same position',
   description: 'No player plays the same position in two consecutive innings.',
   repeatable: false,
+  addAtTop: false,
   defaultParams: () => ({}),
   evaluate(ctx, _params, inst) {
     const out: Violation[] = []
@@ -222,6 +245,7 @@ const playGroupByInning: ConstraintDef = {
   name: 'Everyone plays a position group early',
   description: 'Every player plays one of the chosen positions at least N times before a given point in the game.',
   repeatable: true,
+  addAtTop: false,
   defaultParams: () => ({ positions: [...INFIELD_POSITIONS], times: 1, byInning: 4 }),
   evaluate(ctx, params, inst) {
     const { group, times, deadline } = groupParams(ctx, params)
@@ -269,6 +293,7 @@ const positionEligibility: ConstraintDef = {
   name: 'Who can play a position',
   description: 'Only the checked players may play the chosen position.',
   repeatable: true,
+  addAtTop: true,
   defaultParams: () => ({ position: 'C', playerIds: [], exemptFromRepeat: false }),
   evaluate(ctx, params, inst) {
     const pos = str(params, 'position')
@@ -288,6 +313,7 @@ const playerPositions: ConstraintDef = {
   name: 'Positions a player can play',
   description: 'The chosen player may only play the checked positions.',
   repeatable: true,
+  addAtTop: true,
   defaultParams: () => ({ playerId: '', positions: [] }),
   evaluate(ctx, params, inst) {
     const pid = str(params, 'playerId')
@@ -324,12 +350,14 @@ export function constraintDef(type: ConstraintType): ConstraintDef {
 export function evaluateAll(ctx: EvalContext, constraints: ConstraintInstance[]): Violation[] {
   ctx.repeatExempt = repeatExemptPositions(constraints)
   const out: Violation[] = []
-  for (const inst of constraints) {
-    if (!inst.enabled) continue
+  constraints.forEach((inst, index) => {
+    if (!inst.enabled) return
     const def = defByType.get(inst.type)
-    if (!def) continue
-    out.push(...def.evaluate(ctx, inst.params, inst))
-  }
+    if (!def) return
+    const rank = index + 1
+    const weight = rankWeight(index, constraints.length)
+    for (const violation of def.evaluate(ctx, inst.params, inst)) out.push({ ...violation, rank, weight })
+  })
   return out
 }
 
@@ -345,9 +373,17 @@ export function solverCostAll(ctx: EvalContext, constraints: ConstraintInstance[
   return cost
 }
 
-/** Ensure every non-repeatable constraint exists exactly once (disabled if newly added). */
-export function normalizeConstraints(list: ConstraintInstance[]): ConstraintInstance[] {
-  const out: ConstraintInstance[] = []
+/** Order singletons are created in when missing: bench fairness first, then rotation rules. */
+const DEFAULT_ORDER: ConstraintType[] = ['equal-sitting', 'no-consecutive-bench', 'no-repeat-position', 'no-consecutive-same-position']
+
+/**
+ * Ensure every non-repeatable constraint exists exactly once (disabled if newly
+ * added) and that the list order is a sensible priority. Saved setups from
+ * before priorities existed get their "who may play where" rules moved to the
+ * top; setups that carried a numeric `priority` are sorted by it.
+ */
+export function normalizeConstraints(list: (ConstraintInstance & { priority?: unknown })[], migrateOrder = false): ConstraintInstance[] {
+  const kept: { inst: ConstraintInstance; priority: number | null; addAtTop: boolean }[] = []
   const seenSingle = new Set<ConstraintType>()
   for (const inst of list) {
     const def = defByType.get(inst.type)
@@ -356,11 +392,24 @@ export function normalizeConstraints(list: ConstraintInstance[]): ConstraintInst
       if (seenSingle.has(inst.type)) continue
       seenSingle.add(inst.type)
     }
-    out.push({ ...inst, params: { ...def.defaultParams(), ...(inst.params ?? {}) } })
+    const { priority, ...rest } = inst
+    kept.push({
+      inst: { ...rest, params: { ...def.defaultParams(), ...(inst.params ?? {}) } },
+      priority: typeof priority === 'number' && Number.isFinite(priority) ? priority : null,
+      addAtTop: def.addAtTop,
+    })
   }
-  for (const def of CONSTRAINT_DEFS) {
-    if (!def.repeatable && !seenSingle.has(def.type)) {
-      out.push({ id: `c_${def.type}`, type: def.type, enabled: false, params: def.defaultParams() })
+  let ordered = kept
+  if (migrateOrder) {
+    ordered = kept.some((k) => k.priority !== null)
+      ? [...kept].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
+      : [...kept.filter((k) => k.addAtTop), ...kept.filter((k) => !k.addAtTop)]
+  }
+  const out = ordered.map((k) => k.inst)
+  for (const type of DEFAULT_ORDER) {
+    if (!seenSingle.has(type)) {
+      const def = defByType.get(type)
+      if (def) out.push({ id: `c_${def.type}`, type: def.type, enabled: false, params: def.defaultParams() })
     }
   }
   return out

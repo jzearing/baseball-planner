@@ -25,7 +25,7 @@ export function markTutorialSeen(): void {
 export function defaultState(sport: Sport = 'baseball'): AppState {
   const def = sportDef(sport)
   const base: AppState = {
-    version: 1,
+    version: 2,
     sport,
     periodName: def.defaultPeriodName,
     gameTitle: '',
@@ -74,19 +74,23 @@ export function coerceState(raw: unknown): AppState {
   const positions = Array.isArray(r.positions)
     ? sortPositions(r.positions.filter((p): p is string => typeof p === 'string' && valid.has(p)))
     : d.positions
+  // Saves from before rule ordering existed get their "who may play where" rules moved to the top, once.
+  const migrateOrder = r.version !== 2
   const constraints = normalizeConstraints(
     Array.isArray(r.constraints)
       ? r.constraints
           .filter((c): c is Record<string, unknown> => !!c && typeof c === 'object' && typeof c.type === 'string')
           .map(
-            (c, i): ConstraintInstance => ({
+            (c, i): ConstraintInstance & { priority?: unknown } => ({
               id: typeof c.id === 'string' ? c.id : `c_${i}`,
               type: c.type as ConstraintInstance['type'],
               enabled: c.enabled === true,
+              priority: c.priority,
               params: c.params && typeof c.params === 'object' ? (c.params as Record<string, unknown>) : {},
             }),
           )
       : d.constraints,
+    migrateOrder,
   )
   const plan = Array.isArray(r.plan)
     ? r.plan.map(
@@ -116,7 +120,7 @@ export function coerceState(raw: unknown): AppState {
     : []
 
   const state: AppState = {
-    version: 1,
+    version: 2,
     sport,
     periodName: typeof r.periodName === 'string' && r.periodName.trim() ? r.periodName.trim().slice(0, 20) : d.periodName,
     gameTitle: typeof r.gameTitle === 'string' ? r.gameTitle : '',

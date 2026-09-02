@@ -11,7 +11,7 @@ const STEPS: { title: string; body: string }[] = [
   },
   {
     title: 'Pick the rules',
-    body: 'Tick the rules you want on the right and adjust their numbers. Add rules for who may catch or pitch, or which positions a player can play. Tick the exemption on a catcher or pitcher rule so those players can repeat. The Preferences tab holds softer wishes, like a player who would like to play shortstop, which the solver honours when the rules allow.',
+    body: 'Tick the rules you want on the right and adjust their numbers. Add rules for who may catch or pitch, or which positions a player can play. Tick the exemption on a catcher or pitcher rule so those players can repeat. The rule list is in priority order: when the rules cannot all be met, rules nearer the top are satisfied first, so drag the ⋮⋮ handle to reorder them. The Preferences tab holds softer wishes, like a player who would like to play shortstop, which the solver honours when the rules allow.',
   },
   {
     title: 'Randomize the lineup',

@@ -5,6 +5,7 @@ export type DragItem =
   | { kind: 'cell'; inning: number; index: number }
   | { kind: 'inning'; index: number }
   | { kind: 'batter'; index: number }
+  | { kind: 'rule'; index: number }
 
 export type DropTarget = DragItem
 export type DropZone = 'before' | 'after' | 'on'
@@ -34,13 +35,19 @@ function axisOf(target: DropTarget): 'x' | 'y' {
 
 /**
  * Where over the target the pointer is: near the leading edge (insert before),
- * near the trailing edge (insert after), or in the middle (swap).
+ * near the trailing edge (insert after), or in the middle (swap). Lists that
+ * only reorder (rules) split at the middle and never report 'on'.
  */
-export function zoneFromRect(rect: DOMRect, x: number, y: number, axis: 'x' | 'y'): DropZone {
+export function zoneFromRect(rect: DOMRect, x: number, y: number, axis: 'x' | 'y', insertOnly = false): DropZone {
   const frac = axis === 'y' ? (y - rect.top) / rect.height : (x - rect.left) / rect.width
+  if (insertOnly) return frac < 0.5 ? 'before' : 'after'
   if (frac < 0.25) return 'before'
   if (frac > 0.75) return 'after'
   return 'on'
+}
+
+function insertOnly(target: DropTarget): boolean {
+  return target.kind === 'rule'
 }
 
 /** Can `item` be dropped on `target` at all? */
@@ -79,6 +86,8 @@ export function dropAction(item: DragItem, target: DropTarget, rawZone: DropZone
         return { type: 'swap-innings', a: item.index, b: target.index }
       case 'batter':
         return { type: 'swap-batters', a: item.index, b: target.index }
+      case 'rule':
+        return null
     }
   }
   switch (target.kind) {
@@ -88,14 +97,21 @@ export function dropAction(item: DragItem, target: DropTarget, rawZone: DropZone
       return { type: 'move-inning', from: item.index, insertBefore }
     case 'batter':
       return { type: 'move-batter', from: item.index, insertBefore }
+    case 'rule':
+      return { type: 'move-constraint', from: item.index, insertBefore }
   }
 }
 
-/** Data attributes that let the touch handler recognise a drag source / drop target. */
-export function dropAttrs(target: DropTarget, draggable: boolean): Record<string, string> {
+/**
+ * Data attributes that let the touch handler recognise a drag source / drop
+ * target. With `handleOnly`, a touch drag starts only from a child marked
+ * `data-drag-handle`, so forms inside the element stay usable.
+ */
+export function dropAttrs(target: DropTarget, draggable: boolean, handleOnly = false): Record<string, string> {
   const attrs: Record<string, string> = { 'data-drop': target.kind, 'data-index': String(target.index) }
   if (target.kind === 'cell') attrs['data-inning'] = String(target.inning)
   if (!draggable) attrs['data-nodrag'] = '1'
+  if (handleOnly) attrs['data-handle-only'] = '1'
   return attrs
 }
 
@@ -107,14 +123,14 @@ function readTarget(el: HTMLElement): DropTarget | null {
     const inning = Number(el.dataset.inning)
     return Number.isInteger(inning) ? { kind, inning, index } : null
   }
-  if (kind === 'inning' || kind === 'batter') return { kind, index }
+  if (kind === 'inning' || kind === 'batter' || kind === 'rule') return { kind, index }
   return null
 }
 
 /** Mouse (HTML5) drag-and-drop handlers for one drop target. */
 export function useDropTarget(target: DropTarget, dispatch: (a: Action) => void) {
   const [zone, setZone] = useState<DropZone | null>(null)
-  const zoneOf = (e: DragEvent) => zoneFromRect(e.currentTarget.getBoundingClientRect(), e.clientX, e.clientY, axisOf(target))
+  const zoneOf = (e: DragEvent) => zoneFromRect(e.currentTarget.getBoundingClientRect(), e.clientX, e.clientY, axisOf(target), insertOnly(target))
   return {
     zone,
     onDragOver(e: DragEvent) {
@@ -235,6 +251,7 @@ export function installTouchDnd(root: HTMLElement, dispatch: (a: Action) => void
     if (t.closest('button, input, select, textarea, a')) return
     const el = t.closest<HTMLElement>('[data-drop]')
     if (!el || el.dataset.nodrag === '1') return
+    if (el.dataset.handleOnly === '1' && !t.closest('[data-drag-handle]')) return
     const target = readTarget(el)
     if (!target) return
     startX = e.touches[0].clientX
@@ -266,7 +283,7 @@ export function installTouchDnd(root: HTMLElement, dispatch: (a: Action) => void
       clearHighlight()
       return
     }
-    const zone = effectiveZone(item, target, zoneFromRect(el.getBoundingClientRect(), x, y, axisOf(target)))
+    const zone = effectiveZone(item, target, zoneFromRect(el.getBoundingClientRect(), x, y, axisOf(target), insertOnly(target)))
     if (sameSlot(item, target) && zone === 'on') {
       clearHighlight()
       return

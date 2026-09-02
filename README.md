@@ -20,6 +20,10 @@ to a JSON file you can import later).
   - Who can play a position (e.g. only these players may pitch or catch), with an option to
     exempt that position from the repeated-position rules so a catcher can catch every inning
   - Positions a given player can play
+- The rule list is in priority order: drag a rule's ⋮⋮ handle to move it. When the rules cannot
+  all be met, the solver satisfies rules nearer the top first, and one violation of a higher rule
+  outweighs any number of violations of the rules below it. New "Who can play a position" and
+  "Positions a player can play" rules are added at the top; other rules join at the bottom.
 - **Preferences** tab: soft wishes such as "Eli would like to play SS". The solver honours
   them whenever the rules allow, and nothing is flagged when it cannot.
 - **Randomize lineup** solves inning by inning from the first inning onward. If every rule

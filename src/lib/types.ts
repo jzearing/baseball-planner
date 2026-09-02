@@ -27,6 +27,10 @@ export type ConstraintType =
   | 'position-eligibility'
   | 'player-positions'
 
+/**
+ * A rule instance. The order of the constraints array is the priority: the
+ * first rule outranks any number of violations of the rules below it.
+ */
 export interface ConstraintInstance {
   id: string
   type: ConstraintType
@@ -45,7 +49,8 @@ export interface Preference {
 export type SportId = 'baseball' | 'soccer'
 
 export interface AppState {
-  version: 1
+  /** 2 = constraints array order is the priority (older saves are migrated once). */
+  version: 2
   sport: SportId
   /** Capitalised name of one game segment: "Inning", "Half", "Quarter"… */
   periodName: string
@@ -65,6 +70,10 @@ export interface AppState {
 export interface Violation {
   constraintId: string
   constraintName: string
+  /** 1 = the top (highest-priority) rule in the list. */
+  rank: number
+  /** Solver cost of this violation, derived from the rank. */
+  weight: number
   message: string
   /** Zero-based inning index the violation is attached to, if any. */
   inning?: number
