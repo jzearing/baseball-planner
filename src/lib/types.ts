@@ -31,6 +31,8 @@ export interface ConstraintInstance {
   id: string
   type: ConstraintType
   enabled: boolean
+  /** 1 (lowest) to 9: a higher-priority rule outranks any number of lower-priority violations. */
+  priority: number
   params: Record<string, unknown>
 }
 
@@ -65,6 +67,7 @@ export interface AppState {
 export interface Violation {
   constraintId: string
   constraintName: string
+  priority: number
   message: string
   /** Zero-based inning index the violation is attached to, if any. */
   inning?: number

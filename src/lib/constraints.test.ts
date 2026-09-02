@@ -13,6 +13,7 @@ const c = (type: ConstraintInstance['type'], params: Record<string, unknown> = {
   id: `t_${type}`,
   type,
   enabled: true,
+  priority: 1,
   params,
 })
 

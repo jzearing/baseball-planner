@@ -373,6 +373,43 @@ button.icon:hover {
 .constraint-name {
   font-weight: 600;
 }
+.priority {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+}
+.priority .icon {
+  padding: 0 0.3rem;
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--accent);
+}
+.priority .icon:hover:not(:disabled) {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.priority .icon:disabled {
+  color: var(--line);
+}
+.priority-value {
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 1.4rem;
+  text-align: center;
+  color: var(--muted);
+}
+.priority-value.p2 {
+  color: #4b5563;
+}
+.priority-value.p3 {
+  color: var(--accent);
+}
+.priority-value.p4,
+.priority-value.p5 {
+  color: var(--danger);
+}
 .constraint-body {
   margin-top: 0.35rem;
   font-size: 0.9rem;

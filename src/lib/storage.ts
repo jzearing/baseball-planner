@@ -45,6 +45,7 @@ export function defaultState(sport: Sport = 'baseball'): AppState {
     id: 'c_infield_default',
     type: 'play-group-by-inning',
     enabled: false,
+    priority: 1,
     params: { positions: [...def.defaultGroup], times: 1, byInning: 4 },
   })
   base.plan = normalizePlan(base)
@@ -83,6 +84,7 @@ export function coerceState(raw: unknown): AppState {
               id: typeof c.id === 'string' ? c.id : `c_${i}`,
               type: c.type as ConstraintInstance['type'],
               enabled: c.enabled === true,
+              priority: typeof c.priority === 'number' ? c.priority : Number.NaN,
               params: c.params && typeof c.params === 'object' ? (c.params as Record<string, unknown>) : {},
             }),
           )

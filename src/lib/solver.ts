@@ -1,6 +1,6 @@
 import type { AppState, Inning, PlayerId, Slot } from './types'
 import { BENCH } from './types'
-import { evaluateAll, makeContext, solverCostAll } from './constraints'
+import { evaluateAll, makeContext, solverCostAll, weightedCost } from './constraints'
 import { activePlayers, emptyInning, slotOf } from './plan'
 import { sportDef } from './positions'
 import { preferenceCost } from './preferences'
@@ -34,8 +34,8 @@ export function solvePlan(state: AppState, opts: SolveOptions): Inning[] {
   for (let a = 0; a < attempts; a++) {
     const plan = solveOnce(state, opts)
     const violations = evaluateAll(makeContext(state, plan), state.constraints)
-    // Weight late-inning violations slightly less so a clean start is preferred on ties.
-    const score = violations.reduce((acc, v) => acc + 1 + (state.inningCount - (v.inning ?? state.inningCount)) * 0.01, 0)
+    // Priority-weighted; late-inning violations count slightly less so a clean start wins ties.
+    const score = weightedCost(violations) + violations.reduce((acc, v) => acc + (state.inningCount - (v.inning ?? state.inningCount)) * 0.001, 0)
     if (!best || score < best.score) best = { plan, score }
     if (best.score === 0 || Date.now() >= deadline) break
   }
@@ -101,7 +101,7 @@ function solveOnce(state: AppState, opts: SolveOptions): Inning[] {
       const inn = build(perm)
       const ctx = makeContext(state, [...solved, inn])
       return (
-        evaluateAll(ctx, state.constraints).length +
+        weightedCost(evaluateAll(ctx, state.constraints)) +
         solverCostAll(ctx, state.constraints) +
         preferenceCost(ctx, state.preferences) +
         emptyPenalty(inn, state)

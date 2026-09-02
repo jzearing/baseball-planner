@@ -1,5 +1,5 @@
 import type { AppState, ConstraintInstance } from '../lib/types'
-import { CONSTRAINT_DEFS, bool, constraintDef, num, str, strList } from '../lib/constraints'
+import { CONSTRAINT_DEFS, MAX_PRIORITY, MIN_PRIORITY, bool, constraintDef, num, str, strList } from '../lib/constraints'
 import { periodNoun, positionLabel } from '../lib/positions'
 import type { Action } from '../state'
 import { MultiSelect } from './MultiSelect'
@@ -24,7 +24,10 @@ export function ConstraintPanel({ state, dispatch, counts }: Props) {
   return (
     <section className="panel">
       <h2>Constraints</h2>
-      <p className="muted small">Checked rules are enforced by the solver and checked after every manual change.</p>
+      <p className="muted small">
+        Checked rules are enforced by the solver and checked after every manual change. When not every rule can be met, higher-priority rules win: use
+        the − and + buttons to rank them.
+      </p>
       <ul className="constraints">
         {state.constraints.map((inst) => (
           <ConstraintRow key={inst.id} inst={inst} state={state} dispatch={dispatch} count={counts.get(inst.id) ?? 0} />
@@ -79,6 +82,27 @@ function ConstraintRow({ inst, state, dispatch, count }: RowProps) {
             ⚠ {count}
           </span>
         )}
+        <span className="priority" title="Priority: when rules conflict, a higher number is satisfied first">
+          <button
+            type="button"
+            className="icon"
+            aria-label="Lower priority"
+            disabled={inst.priority <= MIN_PRIORITY}
+            onClick={() => dispatch({ type: 'bump-constraint-priority', id: inst.id, delta: -1 })}
+          >
+            −
+          </button>
+          <span className={`priority-value p${Math.min(inst.priority, 5)}`}>P{inst.priority}</span>
+          <button
+            type="button"
+            className="icon"
+            aria-label="Raise priority"
+            disabled={inst.priority >= MAX_PRIORITY}
+            onClick={() => dispatch({ type: 'bump-constraint-priority', id: inst.id, delta: 1 })}
+          >
+            +
+          </button>
+        </span>
         {def.repeatable && (
           <button type="button" className="icon" title="Remove rule" onClick={() => dispatch({ type: 'remove-constraint', id: inst.id })}>
             ✕
