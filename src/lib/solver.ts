@@ -3,6 +3,7 @@ import { BENCH } from './types'
 import { evaluateAll, makeContext, solverCostAll } from './constraints'
 import { activePlayers, emptyInning, slotOf } from './plan'
 import { positionDef } from './positions'
+import { preferenceCost } from './preferences'
 import { randomInt, shuffle, type Rng } from './rng'
 
 export interface SolveOptions {
@@ -70,6 +71,7 @@ export function solvePlan(state: AppState, opts: SolveOptions): Inning[] {
       return (
         evaluateAll(ctx, state.constraints).length +
         solverCostAll(ctx, state.constraints) +
+        preferenceCost(ctx, state.preferences) +
         emptyInfieldPenalty(inn, state.positions)
       )
     }

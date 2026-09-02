@@ -30,6 +30,7 @@ export function defaultState(): AppState {
     inningCount: 6,
     positions: [...DEFAULT_POSITIONS],
     constraints: [],
+    preferences: [],
     plan: [],
     battingOrder: [],
   }
@@ -98,6 +99,17 @@ export function coerceState(raw: unknown): AppState {
       )
     : []
 
+  const preferences = Array.isArray(r.preferences)
+    ? r.preferences
+        .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object')
+        .map((x, i) => ({
+          id: typeof x.id === 'string' ? x.id : `pref_${i}`,
+          enabled: x.enabled !== false,
+          playerId: typeof x.playerId === 'string' ? x.playerId : '',
+          positions: Array.isArray(x.positions) ? x.positions.filter((v): v is string => typeof v === 'string' && valid.has(v)) : [],
+        }))
+    : []
+
   const state: AppState = {
     version: 1,
     gameTitle: typeof r.gameTitle === 'string' ? r.gameTitle : '',
@@ -105,6 +117,7 @@ export function coerceState(raw: unknown): AppState {
     inningCount,
     positions: positions.length > 0 ? positions : d.positions,
     constraints,
+    preferences,
     plan,
     battingOrder: Array.isArray(r.battingOrder) ? r.battingOrder.filter((x): x is string => typeof x === 'string') : [],
   }

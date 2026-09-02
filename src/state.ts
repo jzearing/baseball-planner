@@ -1,4 +1,4 @@
-import type { AppState, ConstraintInstance, ConstraintType, Inning, Player, PlayerId, PositionId } from './lib/types'
+import type { AppState, ConstraintInstance, ConstraintType, Inning, Player, PlayerId, PositionId, Preference } from './lib/types'
 import { constraintDef } from './lib/constraints'
 import {
   clearFixed,
@@ -28,6 +28,9 @@ export type Action =
   | { type: 'set-constraint-params'; id: string; params: Record<string, unknown> }
   | { type: 'add-constraint'; constraintType: ConstraintType }
   | { type: 'remove-constraint'; id: string }
+  | { type: 'add-preference' }
+  | { type: 'set-preference'; id: string; patch: Partial<Omit<Preference, 'id'>> }
+  | { type: 'remove-preference'; id: string }
   | { type: 'randomize-lineup' }
   | { type: 'resolve-keep-fixed' }
   | { type: 'shuffle-batting' }
@@ -75,6 +78,7 @@ export function reducer(state: AppState, action: Action): AppState {
         if (params.playerId === action.id) params.playerId = ''
         return { ...c, params }
       })
+      next.preferences = next.preferences.map((p) => (p.playerId === action.id ? { ...p, playerId: '' } : p))
       return next
     }
     case 'set-innings': {
@@ -105,6 +109,12 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case 'remove-constraint':
       return { ...state, constraints: state.constraints.filter((c) => c.id !== action.id) }
+    case 'add-preference':
+      return { ...state, preferences: [...state.preferences, { id: newId('pref'), enabled: true, playerId: '', positions: [] }] }
+    case 'set-preference':
+      return { ...state, preferences: state.preferences.map((p) => (p.id === action.id ? { ...p, ...action.patch } : p)) }
+    case 'remove-preference':
+      return { ...state, preferences: state.preferences.filter((p) => p.id !== action.id) }
     case 'randomize-lineup': {
       const cleared = { ...state, plan: clearFixed(state.plan) }
       return { ...cleared, plan: solvePlan(cleared, { keepFixed: false }) }

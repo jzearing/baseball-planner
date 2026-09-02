@@ -3,6 +3,7 @@ import { BattingOrder } from './components/BattingOrder'
 import { ConstraintPanel } from './components/ConstraintPanel'
 import { installTouchDnd } from './components/dnd'
 import { FieldTable } from './components/FieldTable'
+import { PreferencePanel } from './components/PreferencePanel'
 import { QrModal } from './components/QrModal'
 import { RosterEditor } from './components/RosterEditor'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -26,6 +27,7 @@ export default function App() {
   const [notice, setNotice] = useState<string | null>(null)
   const [showTutorial, setShowTutorial] = useState(() => !tutorialSeen())
   const [qrUrl, setQrUrl] = useState<string | null>(null)
+  const [railTab, setRailTab] = useState<'constraints' | 'preferences'>('constraints')
   const fileInput = useRef<HTMLInputElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -180,6 +182,12 @@ export default function App() {
             </button>
           )}
           <span className="spacer" />
+          <button type="button" className="secondary" onClick={() => void onShareLink()} disabled={state.players.length === 0} title="A link that carries the whole setup; whoever opens it gets an editable copy">
+            Share link
+          </button>
+          <button type="button" className="secondary" onClick={() => void onShowQr()} disabled={state.players.length === 0} title="Show the share link as a QR code to scan">
+            QR code
+          </button>
           <button type="button" className="secondary" disabled={!hasPlan} onClick={() => void onShare()} title="Send a picture of the plan to another coach">
             Share image
           </button>
@@ -219,16 +227,18 @@ export default function App() {
       </main>
 
       <aside className="sidebar rail-right no-print">
-        <ConstraintPanel state={state} dispatch={dispatch} counts={counts} />
+        <div className="tabs" role="tablist">
+          <button type="button" role="tab" aria-selected={railTab === 'constraints'} className={railTab === 'constraints' ? 'active' : ''} onClick={() => setRailTab('constraints')}>
+            Constraints{violations.length > 0 && <span className="badge">⚠ {violations.length}</span>}
+          </button>
+          <button type="button" role="tab" aria-selected={railTab === 'preferences'} className={railTab === 'preferences' ? 'active' : ''} onClick={() => setRailTab('preferences')}>
+            Preferences{state.preferences.length > 0 && <span className="badge grey">{state.preferences.filter((p) => p.enabled).length}</span>}
+          </button>
+        </div>
+        {railTab === 'constraints' ? <ConstraintPanel state={state} dispatch={dispatch} counts={counts} /> : <PreferencePanel state={state} dispatch={dispatch} />}
         <section className="panel">
           <h2>Save &amp; load</h2>
           <div className="row wrap">
-            <button type="button" className="primary" onClick={() => void onShareLink()} disabled={state.players.length === 0} title="A link that carries the whole setup; whoever opens it gets an editable copy">
-              Share link
-            </button>
-            <button type="button" className="secondary" onClick={() => void onShowQr()} disabled={state.players.length === 0} title="Show the share link as a QR code to scan">
-              QR code
-            </button>
             <button type="button" className="secondary" onClick={() => downloadText(`${fileStem(state.gameTitle)}.json`, exportJson(state), 'application/json')}>
               Export JSON
             </button>
@@ -257,8 +267,8 @@ export default function App() {
             </button>
           </div>
           <p className="muted small">
-            Your roster, rules and plan are saved automatically in this browser. Share link packs the whole setup into a URL so another coach can open an
-            editable copy on their phone; nothing is uploaded anywhere.
+            Your roster, rules and plan are saved automatically in this browser. Export JSON keeps a file copy you can import later or on another device.
+            To send the setup to another coach, use Share link or QR code in the toolbar above the plan.
           </p>
         </section>
       </aside>

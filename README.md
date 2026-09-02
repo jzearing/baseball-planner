@@ -18,6 +18,8 @@ to a JSON file you can import later).
   - Who can play a position (e.g. only these players may pitch or catch), with an option to
     exempt that position from the repeated-position rules so a catcher can catch every inning
   - Positions a given player can play
+- **Preferences** tab: soft wishes such as "Eli would like to play SS". The solver honours
+  them whenever the rules allow, and nothing is flagged when it cannot.
 - **Randomize lineup** solves inning by inning from the first inning onward. If every rule
   cannot be met, earlier innings are satisfied first and the trouble lands in later innings.
 - Drag a name onto another name to swap; drop it between two rows to insert and shift the
