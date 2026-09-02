@@ -1,0 +1,675 @@
+:root {
+  --bg: #f4f5f2;
+  --panel: #ffffff;
+  --ink: #1f2a24;
+  --muted: #6b7570;
+  --line: #d9ded9;
+  --accent: #1d5c3a;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3efe7;
+  --warn: #b45309;
+  --warn-bg: #fef3c7;
+  --fixed: #2563eb;
+  --fixed-bg: #e8f0fe;
+  --danger: #b91c1c;
+  --ok-bg: #dcfce7;
+  --ok: #166534;
+  --radius: 8px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+h1,
+h2 {
+  margin: 0 0 0.5rem;
+  line-height: 1.2;
+}
+h1 {
+  font-size: 1.3rem;
+}
+h2 {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+p {
+  margin: 0.25rem 0;
+}
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 0.85rem;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+input,
+select,
+textarea {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  background: #fff;
+  min-width: 0;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+input.tiny {
+  width: 3.6rem;
+  padding: 0.15rem 0.3rem;
+}
+button {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 6px;
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button.secondary {
+  background: #fff;
+  color: var(--accent);
+}
+button.danger {
+  background: #fff;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+button.link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  padding: 0.2rem 0.3rem;
+  text-decoration: underline;
+}
+button.icon {
+  background: none;
+  border: none;
+  color: var(--muted);
+  padding: 0.2rem 0.4rem;
+}
+button.icon:hover {
+  color: var(--danger);
+}
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-weight: 600;
+}
+.badge.blue {
+  background: var(--fixed-bg);
+  color: var(--fixed);
+}
+
+/* ---------- layout ---------- */
+.app {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  min-height: 100vh;
+}
+.sidebar {
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.brand p {
+  margin-top: 0.25rem;
+}
+.main {
+  padding: 1rem 1.25rem 2rem;
+  min-width: 0;
+}
+.panel {
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+}
+.row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.row.wrap {
+  flex-wrap: wrap;
+}
+.row > input {
+  flex: 1;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.6rem;
+}
+.field > span {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.spacer {
+  flex: 1;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+.chip.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.chip input {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+/* ---------- roster ---------- */
+.roster {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.roster li {
+  display: flex;
+  gap: 0.25rem;
+}
+.roster input {
+  flex: 1;
+  padding: 0.25rem 0.5rem;
+}
+
+/* ---------- constraints ---------- */
+.constraints {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.constraint {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.6rem;
+  background: #fafbfa;
+}
+.constraint.off .constraint-body {
+  opacity: 0.55;
+}
+.constraint.broken {
+  border-color: var(--warn);
+}
+.constraint-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.constraint-head label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  cursor: pointer;
+}
+.constraint-head input {
+  flex-shrink: 0;
+}
+.constraint-name {
+  font-weight: 600;
+}
+.constraint-body {
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  line-height: 1.9;
+}
+.inline select {
+  padding: 0.15rem 0.3rem;
+}
+
+/* ---------- multiselect ---------- */
+.multiselect {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+.multiselect-button {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 0.15rem 0.5rem;
+  max-width: 16rem;
+}
+.multiselect-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.multiselect-caret {
+  color: var(--muted);
+}
+.multiselect-menu {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  min-width: 12rem;
+  max-height: 16rem;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  padding: 0.3rem;
+  line-height: 1.5;
+}
+.multiselect-item {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.multiselect-item:hover {
+  background: var(--accent-soft);
+}
+.multiselect-actions {
+  display: flex;
+  gap: 0.2rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.2rem;
+}
+.multiselect-empty {
+  padding: 0.3rem;
+  color: var(--muted);
+}
+
+/* ---------- toolbar ---------- */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.notice {
+  background: var(--accent-soft);
+  border-left: 4px solid var(--accent);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+}
+.empty-state {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--muted);
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+}
+
+/* ---------- plan table ---------- */
+.table-wrap {
+  overflow-x: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+table.plan {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 100%;
+}
+table.plan th,
+table.plan td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.15rem 0.25rem;
+  text-align: left;
+  vertical-align: middle;
+}
+table.plan thead th {
+  background: var(--accent-soft);
+  padding: 0.5rem 0.4rem;
+  font-size: 0.9rem;
+}
+.label-col {
+  width: 9rem;
+  white-space: nowrap;
+  font-weight: 500;
+  background: #fafbfa;
+  padding-left: 0.6rem !important;
+}
+.pos-id {
+  font-weight: 700;
+  display: inline-block;
+  min-width: 2rem;
+}
+.pos-id.bench {
+  color: var(--muted);
+  font-weight: 600;
+}
+.pos-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.bench-row td {
+  background: #fafbfa;
+}
+.inning-head {
+  cursor: grab;
+  user-select: none;
+  position: relative;
+  white-space: nowrap;
+}
+.inning-head .grip {
+  color: var(--muted);
+  margin-right: 0.3rem;
+  letter-spacing: -2px;
+}
+.cell {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  min-height: 2rem;
+  cursor: grab;
+  position: relative;
+  background: #fff;
+}
+.cell.empty {
+  color: var(--muted);
+  cursor: default;
+}
+.cell .name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cell.violation {
+  background: var(--warn-bg);
+  border-color: var(--warn);
+}
+.cell.fixed {
+  border-color: var(--fixed);
+  background: var(--fixed-bg);
+}
+.cell.fixed.violation {
+  background: var(--warn-bg);
+  border-color: var(--fixed);
+  border-style: dashed;
+}
+.cell .warn {
+  color: var(--warn);
+  cursor: help;
+}
+.cell .pin {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8rem;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.cell:hover .pin,
+.cell .pin.on {
+  opacity: 1;
+}
+
+/* Drop-zone feedback: an insert line above/below, or a swap highlight. */
+.zone-on {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: -2px;
+}
+.cell.zone-before {
+  box-shadow: 0 -3px 0 0 var(--accent);
+}
+.cell.zone-after {
+  box-shadow: 0 3px 0 0 var(--accent);
+}
+.inning-head.zone-before {
+  box-shadow: inset 4px 0 0 0 var(--accent);
+}
+.inning-head.zone-after {
+  box-shadow: inset -4px 0 0 0 var(--accent);
+}
+.batter.zone-before {
+  box-shadow: 0 -3px 0 0 var(--accent);
+}
+.batter.zone-after {
+  box-shadow: 0 3px 0 0 var(--accent);
+}
+
+.hint {
+  margin: 0.5rem 0 1rem;
+}
+
+/* ---------- violations ---------- */
+.violations {
+  background: var(--warn-bg);
+  border-left: 4px solid var(--warn);
+  padding: 0.6rem 0.9rem;
+  border-radius: 4px;
+  margin-bottom: 1.25rem;
+}
+.violations.ok {
+  background: var(--ok-bg);
+  border-left-color: var(--ok);
+  color: var(--ok);
+}
+.violations ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+/* ---------- batting order ---------- */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.4rem;
+}
+.batting-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.3rem;
+  max-width: 48rem;
+}
+.batter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  cursor: grab;
+  position: relative;
+}
+.batter .order {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.print-only {
+  display: none;
+}
+
+/* ---------- print: one letter sheet ---------- */
+@page {
+  size: letter portrait;
+  margin: 0.5in;
+}
+@media print {
+  :root {
+    font-size: 11pt;
+    background: #fff;
+  }
+  body {
+    background: #fff;
+  }
+  .no-print,
+  .sidebar,
+  .toolbar,
+  .violations,
+  .hint,
+  .cell .pin,
+  .cell .warn,
+  .inning-head .grip {
+    display: none !important;
+  }
+  .print-only {
+    display: block;
+  }
+  .app {
+    display: block;
+    min-height: 0;
+  }
+  .main {
+    padding: 0;
+  }
+  .print-header h1 {
+    font-size: 16pt;
+    margin-bottom: 0.3rem;
+  }
+  .table-wrap {
+    overflow: visible;
+    border: none;
+  }
+  table.plan {
+    border: 1px solid #000;
+  }
+  table.plan th,
+  table.plan td {
+    border: 1px solid #000;
+    padding: 0.1rem 0.2rem;
+  }
+  table.plan thead th {
+    background: #eee !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .label-col {
+    width: auto;
+    background: #fff;
+  }
+  .cell,
+  .cell.violation,
+  .cell.fixed,
+  .cell.fixed.violation {
+    background: none;
+    border: none;
+    min-height: 0;
+    padding: 0.1rem 0.2rem;
+  }
+  .cell .name {
+    white-space: normal;
+    overflow: visible;
+  }
+  .label-col {
+    width: 1%;
+  }
+  .batting {
+    margin-top: 0.8rem;
+    break-inside: avoid;
+  }
+  .batting h2 {
+    color: #000;
+  }
+  .batting-list {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: none;
+    gap: 0.15rem;
+  }
+  .batter {
+    border-color: #999;
+    padding: 0.1rem 0.4rem;
+  }
+  .batter .order {
+    background: none;
+    color: #000;
+    width: auto;
+    height: auto;
+  }
+  .batter .order::after {
+    content: '.';
+  }
+}
