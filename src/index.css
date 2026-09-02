@@ -656,6 +656,7 @@ body.touch-drag-active {
 }
 
 /* ---------- print: one letter sheet ---------- */
+/* Some browsers (Safari, iOS) ignore @page margins, so the content also pads itself. */
 @page {
   size: letter landscape;
   margin: 0.5in;
@@ -686,7 +687,7 @@ body.touch-drag-active {
     min-height: 0;
   }
   .main {
-    padding: 0;
+    padding: 0.3in;
     display: flex;
     flex-wrap: wrap;
     gap: 0 0.4in;
