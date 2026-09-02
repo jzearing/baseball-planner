@@ -42,8 +42,13 @@ export interface Preference {
   positions: PositionId[]
 }
 
+export type SportId = 'baseball' | 'soccer'
+
 export interface AppState {
   version: 1
+  sport: SportId
+  /** Capitalised name of one game segment: "Inning", "Half", "Quarter"… */
+  periodName: string
   gameTitle: string
   players: Player[]
   inningCount: number

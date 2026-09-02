@@ -1,6 +1,7 @@
 import type { Violation } from '../lib/types'
+import { periodTitle } from '../lib/positions'
 
-export function ViolationList({ violations, hasPlan }: { violations: Violation[]; hasPlan: boolean }) {
+export function ViolationList({ violations, hasPlan, periodName }: { violations: Violation[]; hasPlan: boolean; periodName: string }) {
   if (!hasPlan) return null
   if (violations.length === 0) {
     return (
@@ -20,7 +21,7 @@ export function ViolationList({ violations, hasPlan }: { violations: Violation[]
       <ul>
         {list.map((v, i) => (
           <li key={i}>
-            {v.inning !== undefined && <span className="muted">Inning {v.inning + 1}: </span>}
+            {v.inning !== undefined && <span className="muted">{periodTitle(periodName, v.inning)}: </span>}
             {v.message} <span className="muted">({v.constraintName})</span>
           </li>
         ))}

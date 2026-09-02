@@ -1,6 +1,6 @@
 import type { AppState, ConstraintInstance } from '../lib/types'
 import { CONSTRAINT_DEFS, bool, constraintDef, num, str, strList } from '../lib/constraints'
-import { positionLabel } from '../lib/positions'
+import { periodNoun, positionLabel } from '../lib/positions'
 import type { Action } from '../state'
 import { MultiSelect } from './MultiSelect'
 
@@ -10,6 +10,14 @@ interface Props {
   /** Number of current violations per constraint id. */
   counts: Map<string, number>
 }
+
+const RULE_REQUEST_URL =
+  'https://github.com/jzearing/baseball-planner/issues/new?' +
+  new URLSearchParams({
+    title: 'Rule request: ',
+    labels: 'rule request',
+    body: ['**What should the rule enforce?**', '', '', '**Example of a lineup it should allow or reject:**', '', '', '**Sport:** baseball / soccer'].join('\n'),
+  }).toString()
 
 export function ConstraintPanel({ state, dispatch, counts }: Props) {
   const repeatable = CONSTRAINT_DEFS.filter((d) => d.repeatable)
@@ -38,6 +46,13 @@ export function ConstraintPanel({ state, dispatch, counts }: Props) {
           ))}
         </select>
       </label>
+      <p className="muted small">
+        Missing a rule?{' '}
+        <a href={RULE_REQUEST_URL} target="_blank" rel="noreferrer">
+          Suggest one on GitHub
+        </a>{' '}
+        (needs a free GitHub account).
+      </p>
     </section>
   )
 }
@@ -100,6 +115,8 @@ function NumberInput({ value, min, onChange }: { value: number; min: number; onC
 
 function ParamEditor({ inst, state, set }: ParamProps) {
   const p = inst.params
+  const period = periodNoun(state.periodName)
+  const unit = `${period.singular}(s)`
   const playerOptions = state.players.map((pl) => ({ value: pl.id, label: pl.name || '(unnamed)' }))
   const positionOptions = state.positions.map((pos) => ({ value: pos, label: `${pos} – ${positionLabel(pos)}` }))
 
@@ -113,23 +130,23 @@ function ParamEditor({ inst, state, set }: ParamProps) {
     case 'equal-sitting':
       return (
         <span className="inline">
-          Everyone sits the same number of innings, within ± <NumberInput value={num(p, 'tolerance', 1)} min={0} onChange={(n) => set({ tolerance: n })} /> inning(s).
+          Everyone sits the same number of {period.plural}, within ± <NumberInput value={num(p, 'tolerance', 1)} min={0} onChange={(n) => set({ tolerance: n })} /> {unit}.
         </span>
       )
     case 'no-consecutive-bench':
       return (
         <span className="inline">
-          No player sits more than <NumberInput value={num(p, 'maxConsecutive', 1)} min={1} onChange={(n) => set({ maxConsecutive: n })} /> inning(s) in a row.
+          No player sits more than <NumberInput value={num(p, 'maxConsecutive', 1)} min={1} onChange={(n) => set({ maxConsecutive: n })} /> {unit} in a row.
         </span>
       )
     case 'no-consecutive-same-position':
-      return <span className="inline muted">No player plays the same position two innings in a row.</span>
+      return <span className="inline muted">No player plays the same position two {period.plural} in a row.</span>
     case 'play-group-by-inning':
       return (
         <span className="inline">
           Every player plays one of{' '}
           <MultiSelect options={positionOptions} selected={strList(p, 'positions')} onChange={(v) => set({ positions: v })} noun="positions" placeholder="positions…" />{' '}
-          at least <NumberInput value={num(p, 'times', 1)} min={1} onChange={(n) => set({ times: n })} /> time(s) before inning{' '}
+          at least <NumberInput value={num(p, 'times', 1)} min={1} onChange={(n) => set({ times: n })} /> time(s) before {period.singular}{' '}
           <NumberInput value={num(p, 'byInning', 4)} min={2} onChange={(n) => set({ byInning: n })} />.
         </span>
       )

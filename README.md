@@ -1,13 +1,15 @@
 # Lineup Planner
 
-A single-page app that helps youth baseball coaches plan which player fields which
-position each inning, plus a batting order. Everything runs in the browser: there is
+A single-page app that helps youth baseball and soccer coaches plan which player plays which
+position in each inning, half or quarter, plus a batting order for baseball. Everything runs in the browser: there is
 no backend, and the roster, rules and plan are saved to `localStorage` (or exported
 to a JSON file you can import later).
 
 ## Features
 
-- Enter the roster, the number of innings and which positions are in play (9 or 10 fielders).
+- Pick the sport. Baseball plans innings with a batting order; soccer plans halves, thirds or
+  quarters with formation presets (7v7, 9v9, 11v11) and no batting order.
+- Enter the roster, the game length and which positions are in play.
   Untick a player who is absent to leave them out of the plan without deleting them.
 - A library of constraints, each with a checkbox and its own parameters:
   - No repeated positions (at most N times at the same position)

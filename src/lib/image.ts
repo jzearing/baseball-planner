@@ -1,12 +1,16 @@
 import type { AppState } from './types'
 import { benchRowCount, columnList } from './plan'
-import { positionDef, positionLabel, type PositionGroup } from './positions'
+import { periodTitle, positionDef, positionLabel, sportDef, type PositionGroup } from './positions'
 
 /** Fill colours per position group, chosen to stay readable on a phone screen. */
 const GROUP_FILL: Record<PositionGroup | 'bench', string> = {
   battery: '#dbeafe',
   infield: '#dcfce7',
   outfield: '#fef9c3',
+  goalkeeper: '#fde68a',
+  defense: '#dbeafe',
+  midfield: '#dcfce7',
+  forward: '#fecaca',
   bench: '#e5e7eb',
 }
 const HEADER_FILL = '#1d5c3a'
@@ -29,10 +33,11 @@ export function renderPlanImage(state: AppState): Promise<Blob> {
   const headH = 38
   const labelW = 150
   const cellW = Math.max(110, Math.min(160, 900 / Math.max(1, innings)))
-  const battingW = 200
-  const gap = 28
+  const hasBatting = sportDef(state.sport).hasBattingOrder
+  const battingW = hasBatting ? 200 : 0
+  const gap = hasBatting ? 28 : 0
   const tableW = labelW + cellW * innings
-  const battingRows = state.battingOrder.length
+  const battingRows = hasBatting ? state.battingOrder.length : 0
   const absent = state.players.filter((p) => !p.active)
   const absentRows = absent.length > 0 ? 1 : 0
   const width = pad * 2 + tableW + gap + battingW
@@ -73,7 +78,7 @@ export function renderPlanImage(state: AppState): Promise<Blob> {
   font(15, 700)
   text('Position', tableX + 10, y + headH / 2, labelW - 16)
   for (let i = 0; i < innings; i++) {
-    text(`Inning ${i + 1}`, tableX + labelW + i * cellW + 10, y + headH / 2, cellW - 16)
+    text(periodTitle(state.periodName, i), tableX + labelW + i * cellW + 10, y + headH / 2, cellW - 16)
   }
   y += headH
 
@@ -135,6 +140,11 @@ export function renderPlanImage(state: AppState): Promise<Blob> {
   ctx.strokeRect(tableX + 0.5, tableTop + 0.5, tableW - 1, tableBottom - tableTop - 1)
 
   // Batting order
+  if (!hasBatting) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Could not render the image'))), 'image/png')
+    })
+  }
   const bx = tableX + tableW + gap
   ctx.fillStyle = HEADER_FILL
   ctx.fillRect(bx, tableTop, battingW, headH)

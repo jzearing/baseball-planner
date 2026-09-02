@@ -1,6 +1,6 @@
 import type { AppState, ConstraintInstance, ConstraintType, Inning, Player, PlayerId, PositionId, Slot, Violation } from './types'
 import { BENCH } from './types'
-import { INFIELD_POSITIONS } from './positions'
+import { INFIELD_POSITIONS, periodNoun, type PeriodNoun } from './positions'
 import { activePlayers, slotLookup } from './plan'
 
 /** Everything a constraint needs to evaluate a (possibly partial) plan. */
@@ -15,9 +15,11 @@ export interface EvalContext {
   playerName: (id: PlayerId) => string
   /** Positions exempt from the repeated-position rules (set by "Who can play a position"). */
   repeatExempt: Set<PositionId>
+  /** What one game segment is called ("inning", "quarter"…) for messages. */
+  period: PeriodNoun
 }
 
-export function makeContext(state: Pick<AppState, 'players' | 'positions' | 'inningCount'>, innings: Inning[]): EvalContext {
+export function makeContext(state: Pick<AppState, 'players' | 'positions' | 'inningCount'> & { periodName?: string }, innings: Inning[]): EvalContext {
   const names = new Map(state.players.map((p) => [p.id, p.name]))
   return {
     players: activePlayers(state),
@@ -27,6 +29,7 @@ export function makeContext(state: Pick<AppState, 'players' | 'positions' | 'inn
     lookup: innings.map(slotLookup),
     playerName: (id) => names.get(id) ?? '?',
     repeatExempt: new Set(),
+    period: periodNoun(state.periodName),
   }
 }
 
@@ -78,7 +81,8 @@ function v(inst: ConstraintInstance, def: ConstraintDef, message: string, inning
 }
 
 function plural(n: number, word: string): string {
-  return `${n} ${word}${n === 1 ? '' : 's'}`
+  if (n === 1) return `1 ${word}`
+  return `${n} ${word === 'half' ? 'halves' : `${word}s`}`
 }
 
 // ---------- definitions ----------
@@ -134,7 +138,7 @@ const equalSitting: ConstraintDef = {
           if (lk.get(p.id) === BENCH) {
             seen++
             if (seen > min + tol) {
-              out.push(v(inst, this, `${ctx.playerName(p.id)} sits ${plural(n, 'inning')} while others sit only ${min}`, i, p.id))
+              out.push(v(inst, this, `${ctx.playerName(p.id)} sits ${plural(n, ctx.period.singular)} while others sit only ${min}`, i, p.id))
             }
           }
         })
@@ -145,7 +149,7 @@ const equalSitting: ConstraintDef = {
           const s = lk.get(p.id)
           if (s && s !== BENCH) last = i
         })
-        out.push(v(inst, this, `${ctx.playerName(p.id)} sits only ${plural(n, 'inning')} while others sit ${max}`, last >= 0 ? last : undefined, p.id))
+        out.push(v(inst, this, `${ctx.playerName(p.id)} sits only ${plural(n, ctx.period.singular)} while others sit ${max}`, last >= 0 ? last : undefined, p.id))
       }
     }
     return out
@@ -181,7 +185,7 @@ const noConsecutiveBench: ConstraintDef = {
       ctx.lookup.forEach((lk, i) => {
         if (lk.get(p.id) === BENCH) {
           run++
-          if (run > max) out.push(v(inst, this, `${ctx.playerName(p.id)} sits ${plural(run, 'inning')} in a row (max ${max})`, i, p.id))
+          if (run > max) out.push(v(inst, this, `${ctx.playerName(p.id)} sits ${plural(run, ctx.period.singular)} in a row (max ${max})`, i, p.id))
         } else {
           run = 0
         }
@@ -204,7 +208,7 @@ const noConsecutiveSamePosition: ConstraintDef = {
         const a = ctx.lookup[i - 1].get(p.id)
         const b = ctx.lookup[i].get(p.id)
         if (a && a === b && a !== BENCH && !ctx.repeatExempt.has(a)) {
-          const msg = `${ctx.playerName(p.id)} plays ${a} in innings ${i} and ${i + 1}`
+          const msg = `${ctx.playerName(p.id)} plays ${a} in ${ctx.period.plural} ${i} and ${i + 1}`
           out.push(v(inst, this, msg, i - 1, p.id), v(inst, this, msg, i, p.id))
         }
       }
@@ -215,8 +219,8 @@ const noConsecutiveSamePosition: ConstraintDef = {
 
 const playGroupByInning: ConstraintDef = {
   type: 'play-group-by-inning',
-  name: 'Everyone plays a position group by an inning',
-  description: 'Every player plays one of the chosen positions at least N times before a given inning.',
+  name: 'Everyone plays a position group early',
+  description: 'Every player plays one of the chosen positions at least N times before a given point in the game.',
   repeatable: true,
   defaultParams: () => ({ positions: [...INFIELD_POSITIONS], times: 1, byInning: 4 }),
   evaluate(ctx, params, inst) {
@@ -226,7 +230,7 @@ const playGroupByInning: ConstraintDef = {
     for (const p of ctx.players) {
       const n = groupCount(ctx, p.id, group, deadline)
       if (n < times) {
-        const byText = deadline >= ctx.totalInnings ? 'by the end of the game' : `before inning ${deadline + 1}`
+        const byText = deadline >= ctx.totalInnings ? 'by the end of the game' : `before ${ctx.period.singular} ${deadline + 1}`
         out.push(v(inst, this, `${ctx.playerName(p.id)} plays ${group.join('/')} only ${plural(n, 'time')} ${byText} (needs ${times})`, deadline - 1, p.id))
       }
     }

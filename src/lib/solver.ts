@@ -1,8 +1,8 @@
-import type { AppState, Inning, PlayerId, PositionId, Slot } from './types'
+import type { AppState, Inning, PlayerId, Slot } from './types'
 import { BENCH } from './types'
 import { evaluateAll, makeContext, solverCostAll } from './constraints'
 import { activePlayers, emptyInning, slotOf } from './plan'
-import { positionDef } from './positions'
+import { sportDef } from './positions'
 import { preferenceCost } from './preferences'
 import { randomInt, shuffle, type Rng } from './rng'
 
@@ -14,16 +14,35 @@ export interface SolveOptions {
   timeBudgetMs?: number
   restarts?: number
   maxIterations?: number
+  /** Whole-plan attempts; the plan with the fewest violations wins. */
+  attempts?: number
+  /** Overall time budget across attempts, in milliseconds. */
+  totalBudgetMs?: number
 }
 
 /**
- * Solve inning by inning from the first inning onward. Each inning is chosen by
- * randomized local search that minimizes the number of constraint violations in
- * the plan so far (plus look-ahead costs). Earlier innings are never revisited,
- * so when the constraints cannot all be met the earlier innings come out clean
- * and violations pile up toward the end.
+ * Solve the whole game. Each attempt solves inning by inning from the first
+ * inning onward, so earlier innings come out clean and any trouble lands late.
+ * Because a greedy early inning can paint a later one into a corner (for
+ * example, both eligible goalkeepers due to sit in the last quarter), the whole
+ * solve is repeated a few times and the plan with the fewest violations is kept.
  */
 export function solvePlan(state: AppState, opts: SolveOptions): Inning[] {
+  const attempts = Math.max(1, opts.attempts ?? 6)
+  const deadline = Date.now() + (opts.totalBudgetMs ?? 2500)
+  let best: { plan: Inning[]; score: number } | null = null
+  for (let a = 0; a < attempts; a++) {
+    const plan = solveOnce(state, opts)
+    const violations = evaluateAll(makeContext(state, plan), state.constraints)
+    // Weight late-inning violations slightly less so a clean start is preferred on ties.
+    const score = violations.reduce((acc, v) => acc + 1 + (state.inningCount - (v.inning ?? state.inningCount)) * 0.01, 0)
+    if (!best || score < best.score) best = { plan, score }
+    if (best.score === 0 || Date.now() >= deadline) break
+  }
+  return best ? best.plan : solveOnce(state, opts)
+}
+
+function solveOnce(state: AppState, opts: SolveOptions): Inning[] {
   const rng = opts.rng ?? Math.random
   const budget = opts.timeBudgetMs ?? 120
   const restarts = opts.restarts ?? 8
@@ -85,7 +104,7 @@ export function solvePlan(state: AppState, opts: SolveOptions): Inning[] {
         evaluateAll(ctx, state.constraints).length +
         solverCostAll(ctx, state.constraints) +
         preferenceCost(ctx, state.preferences) +
-        emptyInfieldPenalty(inn, state.positions)
+        emptyPenalty(inn, state)
       )
     }
 
@@ -116,9 +135,10 @@ export function solvePlan(state: AppState, opts: SolveOptions): Inning[] {
   return solved
 }
 
-/** Mild preference for leaving outfield spots empty when the roster is short. */
-function emptyInfieldPenalty(inn: Inning, positions: PositionId[]): number {
-  let n = 0
-  for (const p of positions) if (inn.positions[p] === null && positionDef(p).group !== 'outfield') n++
-  return n * 0.2
+/** Mild preference about which spots to leave empty when the roster is short (sport-specific). */
+function emptyPenalty(inn: Inning, state: AppState): number {
+  const penalty = sportDef(state.sport).emptyPenalty
+  let cost = 0
+  for (const p of state.positions) if (inn.positions[p] === null) cost += penalty(p)
+  return cost
 }

@@ -63,6 +63,25 @@ describe('solvePlan', () => {
     expect(hits).toBe(3)
   })
 
+  it('solves a soccer game in quarters with a 7v7 formation', () => {
+    const s = defaultState('soccer')
+    s.players = Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, name: `Player ${i + 1}`, active: true }))
+    s.constraints = s.constraints.map((c) => ({ ...c, enabled: c.type !== 'no-consecutive-same-position' }))
+    s.constraints.push({ id: 'gk', type: 'position-eligibility', enabled: true, params: { position: 'GK', playerIds: ['p0', 'p1'], exemptFromRepeat: true } })
+    const state = coerceState(s)
+    expect(state.periodName).toBe('Quarter')
+    expect(state.inningCount).toBe(4)
+    expect(state.positions).toEqual(['GK', 'LB', 'RB', 'LM', 'CM', 'RM', 'ST'])
+    const plan = solvePlan(state, { keepFixed: false, rng: seededRng(2), timeBudgetMs: 1500 })
+    expect(plan).toHaveLength(4)
+    for (const inn of plan) {
+      expect(inn.bench).toHaveLength(3)
+      expect(['p0', 'p1']).toContain(inn.positions.GK)
+    }
+    const v = evaluateAll(makeContext(state, plan), state.constraints)
+    expect(v).toEqual([])
+  })
+
   it('handles a roster smaller than the number of positions', () => {
     const s = roster(7)
     const plan = solvePlan(s, { keepFixed: false, rng: seededRng(5) })

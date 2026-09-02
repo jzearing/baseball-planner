@@ -12,7 +12,7 @@ import {
   swapItems,
   toggleFixed,
 } from './lib/plan'
-import { sortPositions } from './lib/positions'
+import { catalogFor, sortPositions, sportDef, type Sport } from './lib/positions'
 import { newId } from './lib/rng'
 import { solvePlan } from './lib/solver'
 import { defaultState } from './lib/storage'
@@ -24,6 +24,9 @@ export type Action =
   | { type: 'toggle-player-active'; id: PlayerId }
   | { type: 'remove-player'; id: PlayerId }
   | { type: 'set-innings'; count: number }
+  | { type: 'set-sport'; sport: Sport }
+  | { type: 'set-period-name'; name: string; count?: number }
+  | { type: 'set-positions'; positions: PositionId[] }
   | { type: 'toggle-position'; position: PositionId }
   | { type: 'toggle-constraint'; id: string }
   | { type: 'set-constraint-params'; id: string; params: Record<string, unknown> }
@@ -48,6 +51,10 @@ export type Action =
   | { type: 'clear-plan' }
   | { type: 'import'; state: AppState }
   | { type: 'reset' }
+
+function catalogHas(sport: Sport, position: PositionId): boolean {
+  return catalogFor(sport).some((p) => p.id === position)
+}
 
 function withRoster(state: AppState, players: Player[]): AppState {
   const next = { ...state, players }
@@ -90,6 +97,45 @@ export function reducer(state: AppState, action: Action): AppState {
       next.plan = normalizePlan(next)
       return next
     }
+    case 'set-sport': {
+      if (action.sport === state.sport) return state
+      const def = sportDef(action.sport)
+      const next: AppState = {
+        ...state,
+        sport: action.sport,
+        periodName: def.defaultPeriodName,
+        inningCount: def.defaultPeriodCount,
+        positions: [...def.defaultPositions],
+        // Position lists from the other sport no longer apply.
+        preferences: state.preferences.map((p) => ({ ...p, positions: p.positions.filter((pos) => catalogHas(action.sport, pos)) })),
+        constraints: state.constraints.map((c) => {
+          const params = { ...c.params }
+          if (Array.isArray(params.positions)) {
+            const kept = params.positions.filter((pos) => typeof pos === 'string' && catalogHas(action.sport, pos))
+            params.positions = kept.length === 0 && c.type === 'play-group-by-inning' ? [...def.defaultGroup] : kept
+          }
+          if (typeof params.position === 'string' && !catalogHas(action.sport, params.position)) params.position = def.defaultPositions[0]
+          return { ...c, params }
+        }),
+      }
+      next.plan = normalizePlan(next)
+      return next
+    }
+    case 'set-period-name': {
+      const next = { ...state, periodName: action.name }
+      if (action.count) {
+        next.inningCount = Math.min(20, Math.max(1, action.count))
+        next.plan = normalizePlan(next)
+      }
+      return next
+    }
+    case 'set-positions': {
+      const positions = sortPositions(action.positions.filter((p, i, arr) => arr.indexOf(p) === i && catalogHas(state.sport, p)))
+      if (positions.length === 0) return state
+      const next = { ...state, positions }
+      next.plan = normalizePlan(next)
+      return next
+    }
     case 'toggle-position': {
       const has = state.positions.includes(action.position)
       const positions = has ? state.positions.filter((p) => p !== action.position) : sortPositions([...state.positions, action.position])
@@ -107,7 +153,10 @@ export function reducer(state: AppState, action: Action): AppState {
       }
     case 'add-constraint': {
       const def = constraintDef(action.constraintType)
-      const inst: ConstraintInstance = { id: newId('c'), type: def.type, enabled: true, params: def.defaultParams() }
+      const params = def.defaultParams()
+      if (def.type === 'play-group-by-inning') params.positions = [...sportDef(state.sport).defaultGroup]
+      if (def.type === 'position-eligibility') params.position = state.positions[0] ?? ''
+      const inst: ConstraintInstance = { id: newId('c'), type: def.type, enabled: true, params }
       return { ...state, constraints: [...state.constraints, inst] }
     }
     case 'remove-constraint':

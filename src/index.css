@@ -236,6 +236,38 @@ button.icon:hover {
   flex-wrap: wrap;
   gap: 0.3rem;
 }
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.segmented button {
+  background: #fff;
+  color: var(--ink);
+  border: none;
+  border-radius: 0;
+  padding: 0.4rem 0.8rem;
+}
+.segmented button + button {
+  border-left: 1px solid var(--line);
+}
+.segmented button.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.presets {
+  margin-top: 0.3rem;
+  gap: 0.1rem 0.2rem;
+}
+.presets .link {
+  font-size: 0.85rem;
+  padding: 0.1rem 0.3rem;
+}
+.presets .link.current {
+  font-weight: 700;
+  text-decoration: none;
+}
 .chip {
   border: 1px solid var(--line);
   border-radius: 999px;
