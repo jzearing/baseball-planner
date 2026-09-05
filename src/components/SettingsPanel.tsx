@@ -1,4 +1,4 @@
-import type { AppState } from '../lib/types'
+import type { AppState, HomeAway } from '../lib/types'
 import { benchRowCount } from '../lib/plan'
 import { catalogFor, periodNoun, SPORTS, sportDef, type Sport } from '../lib/positions'
 import type { Action } from '../state'
@@ -42,6 +42,39 @@ export function SettingsPanel({ state, dispatch }: Props) {
           })}
         </div>
       </div>
+      <div className="field">
+        <span>Teams (for Game view)</span>
+        <div className="row">
+          <input
+            value={state.teamName}
+            aria-label="Your team"
+            placeholder="Your team"
+            onChange={(e) => dispatch({ type: 'set-team-name', name: e.target.value })}
+          />
+          <span className="muted small">vs.</span>
+          <input value={state.opponent} aria-label="Opponent" placeholder="Opponent" onChange={(e) => dispatch({ type: 'set-opponent', name: e.target.value })} />
+        </div>
+      </div>
+      {sport.hasBattingOrder && (
+        <div className="field">
+          <span>Home or away</span>
+          <div className="segmented" role="radiogroup" aria-label="Home or away">
+            {(['home', 'away'] as HomeAway[]).map((side) => (
+              <button
+                key={side}
+                type="button"
+                role="radio"
+                aria-checked={state.homeAway === side}
+                className={state.homeAway === side ? 'on' : ''}
+                onClick={() => dispatch({ type: 'set-home-away', homeAway: side })}
+              >
+                {side === 'home' ? 'Home' : 'Away'}
+              </button>
+            ))}
+          </div>
+          <small className="muted">{state.homeAway === 'home' ? 'You field the top of each inning and bat the bottom.' : 'You bat the top of each inning and field the bottom.'}</small>
+        </div>
+      )}
       <label className="field">
         <span>Title (for the printout)</span>
         <input value={state.gameTitle} placeholder="e.g. Tigers vs. Cubs, June 4" onChange={(e) => dispatch({ type: 'set-title', title: e.target.value })} />

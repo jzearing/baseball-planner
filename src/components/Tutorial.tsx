@@ -34,6 +34,14 @@ const STEPS: { title: string; body: string }[] = [
     body: 'The batting order sits under the field table. Shuffle it, or drag names to swap or insert just like on the field. Lock a batter to keep them in their spot when you shuffle.',
   },
   {
+    title: 'Game view on game day',
+    body:
+      'Fill in your team and the opponent under Game, then hit Game view for a full-screen dugout display: a scoreboard by ' +
+      'inning or quarter, the field with every name in position, and big buttons to step through the game and add runs or goals. ' +
+      'For baseball, say whether you are home or away and the batting order shows who is up. The score is saved as you go, so you ' +
+      'can lock the screen and come back.',
+  },
+  {
     title: 'Print, share and save',
     body: 'Print a one-page landscape sheet, Share image to text a picture to another coach, or Export CSV. Everything is saved in this browser automatically. Share link or QR code sends the whole editable setup to someone else; Export and Import JSON keep a file copy.',
   },
