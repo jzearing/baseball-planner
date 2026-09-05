@@ -1,6 +1,6 @@
-import type { AppState, ConstraintInstance, ConstraintType, HomeAway, Inning, Player, PlayerId, PositionId, Preference } from './lib/types'
+import type { AppState, ConstraintInstance, ConstraintType, Half, HomeAway, Inning, Player, PlayerId, PositionId, Preference } from './lib/types'
 import { constraintDef } from './lib/constraints'
-import { addScore, emptyGame, hasHalves, normalizeGame, setBatter, stepBatter, stepGame } from './lib/game'
+import { addScore, emptyGame, goToPeriod, hasHalves, normalizeGame, setBatter, stepBatter, stepGame } from './lib/game'
 import {
   clearFixed,
   moveInColumn,
@@ -55,6 +55,7 @@ export type Action =
   | { type: 'clear-batting-fixed' }
   | { type: 'clear-plan' }
   | { type: 'step-period'; delta: 1 | -1 }
+  | { type: 'set-period'; period: number; half: Half }
   | { type: 'score'; team: 'us' | 'them'; delta: number }
   | { type: 'step-batter'; delta: number }
   | { type: 'set-at-bat'; index: number }
@@ -236,6 +237,8 @@ function apply(state: AppState, action: Action): AppState {
     }
     case 'step-period':
       return { ...state, game: stepGame(state.game, state.inningCount, hasHalves(state), action.delta) }
+    case 'set-period':
+      return { ...state, game: goToPeriod(state.game, state.inningCount, hasHalves(state), action.period, action.half) }
     case 'score':
       return { ...state, game: addScore(state.game, action.team, action.delta) }
     case 'step-batter':

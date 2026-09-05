@@ -60,6 +60,16 @@ export function stepGame(game: GameState, periodCount: number, hasHalves: boolea
   return period === game.period && half === game.half ? game : { ...game, period, half }
 }
 
+/**
+ * Jump straight to a period, and for baseball to one half of it — what tapping a
+ * box on the scoreboard does, since each row there is one team's half.
+ */
+export function goToPeriod(game: GameState, periodCount: number, hasHalves: boolean, period: number, half: Half): GameState {
+  const p = clamp(period, 0, Math.max(0, periodCount - 1))
+  const h = hasHalves ? half : game.half
+  return p === game.period && h === game.half ? game : { ...game, period: p, half: h }
+}
+
 /** Add (or take back) runs in the period in play. Scores never go below zero. */
 export function addScore(game: GameState, team: 'us' | 'them', delta: number): GameState {
   const list = [...game[team]]

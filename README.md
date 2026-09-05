@@ -41,14 +41,15 @@ to a JSON file you can import later).
 - **Game view** turns the screen into a dugout/sideline display:
   - A scoreboard across the top with the score by inning (or quarter or half) and the running
     total, laid out the usual way with the visitors on the first row. Innings still to come are
-    left blank, and the column in play is highlighted.
+    left blank. Tap any box to move the game there: for baseball each row is one team's half, so
+    tapping the home row's third box goes to the bottom of the 3rd. The box in play is ringed.
   - An overhead field — a diamond for baseball, a pitch for soccer — with every player's name
     where they are playing that period, plus the bench underneath.
-  - Big buttons to step through the game. Baseball runs top → bottom → next top; soccer moves a
-    period at a time. Runs are added to whichever team is batting that half; soccer gets a
-    +/− pair per team.
-  - For baseball, the batting order with the batter at the plate highlighted, who is on deck,
-    and buttons to move on to the next batter. Tap any name to put them at the plate.
+  - **Next** steps the game on, since that is the usual move: top → bottom → next top for
+    baseball, one period at a time for soccer. Runs are added to whichever team is batting that
+    half; soccer, where either side can score at any time, gets a +/− pair per team.
+  - For baseball, the batting order with the batter at the plate highlighted and who is on deck.
+    Tap any name to put that batter up, or hit **Next batter** to move on one.
   - The screen is kept awake where the browser allows it, and the score survives a reload, so
     you can lock your phone between innings.
   - Set your team, the opponent and (for baseball) home or away under **Game** on the left.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addScore, emptyGame, normalizeGame, ordinal, periodStatus, stepBatter, stepGame, totalScore, weAreBatting } from './game'
+import { addScore, emptyGame, goToPeriod, normalizeGame, ordinal, periodStatus, stepBatter, stepGame, totalScore, weAreBatting } from './game'
 import { coerceState, defaultState } from './storage'
 import { reducer } from '../state'
 import type { GameState } from './types'
@@ -35,6 +35,29 @@ describe('stepGame without halves', () => {
     expect(g.period).toBe(1)
     expect(stepGame(game({ period: 3 }), 4, false, 1).period).toBe(3)
     expect(stepGame(game({ period: 0 }), 4, false, -1).period).toBe(0)
+  })
+})
+
+describe('goToPeriod', () => {
+  it('jumps to a period and half, the way tapping a scoreboard box does', () => {
+    const g = goToPeriod(game(), 6, true, 3, 'bottom')
+    expect([g.period, g.half]).toEqual([3, 'bottom'])
+  })
+  it('ignores the half where the sport has none', () => {
+    const g = goToPeriod(game({ half: 'top' }), 4, false, 2, 'bottom')
+    expect([g.period, g.half]).toEqual([2, 'top'])
+  })
+  it('clamps a period past the end of the game', () => {
+    expect(goToPeriod(game(), 6, true, 99, 'top').period).toBe(5)
+    expect(goToPeriod(game(), 6, true, -3, 'top').period).toBe(0)
+  })
+  it('leaves the game alone when it is already there', () => {
+    const g = game({ period: 2, half: 'bottom' })
+    expect(goToPeriod(g, 6, true, 2, 'bottom')).toBe(g)
+  })
+  it('keeps the score already on the board', () => {
+    const scored = addScore(game(), 'us', 3)
+    expect(goToPeriod(scored, 6, true, 4, 'top').us).toEqual([3, 0, 0, 0, 0, 0])
   })
 })
 
@@ -127,6 +150,16 @@ describe('game state through the reducer', () => {
     const last = state.players[2]
     state = reducer(state, { type: 'remove-player', id: last.id })
     expect(state.game.atBat).toBe(1)
+  })
+
+  it('moves the game to a tapped box', () => {
+    let state = defaultState()
+    state = reducer(state, { type: 'set-period', period: 4, half: 'bottom' })
+    expect([state.game.period, state.game.half]).toEqual([4, 'bottom'])
+    // Innings the game has not reached yet cannot be selected.
+    state = reducer(state, { type: 'set-innings', count: 3 })
+    state = reducer(state, { type: 'set-period', period: 9, half: 'top' })
+    expect(state.game.period).toBe(2)
   })
 
   it('starts a fresh game when the sport changes', () => {

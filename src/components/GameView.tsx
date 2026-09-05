@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import type { AppState, PlayerId } from '../lib/types'
+import type { AppState, Half, PlayerId } from '../lib/types'
 import { battingFrom, hasHalves, periodStatus, totalScore, weAreBatting } from '../lib/game'
 import { periodNoun, periodTitle, sportDef } from '../lib/positions'
 import type { Action } from '../state'
@@ -35,7 +35,6 @@ export function GameView({ state, dispatch, onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const atStart = game.period === 0 && (!halves || game.half === 'top')
   const atEnd = game.period === state.inningCount - 1 && (!halves || game.half === 'bottom')
 
   return (
@@ -59,7 +58,7 @@ export function GameView({ state, dispatch, onClose }: Props) {
         </button>
       </header>
 
-      <Scoreboard state={state} usName={usName} themName={themName} />
+      <Scoreboard state={state} dispatch={dispatch} usName={usName} themName={themName} />
 
       <div className="gv-body">
         <section className="gv-field">
@@ -82,11 +81,8 @@ export function GameView({ state, dispatch, onClose }: Props) {
 
       <footer className="gv-controls">
         <div className="gv-group">
-          <button type="button" className="gv-btn" disabled={atStart} onClick={() => dispatch({ type: 'step-period', delta: -1 })}>
-            ‹ Back
-          </button>
           <span className="gv-now">{periodStatus(state)}</span>
-          <button type="button" className="gv-btn" disabled={atEnd} onClick={() => dispatch({ type: 'step-period', delta: 1 })}>
+          <button type="button" className="gv-btn" disabled={atEnd} onClick={() => dispatch({ type: 'step-period', delta: 1 })} title="Move on to the next half or period">
             Next ›
           </button>
         </div>
@@ -107,9 +103,6 @@ export function GameView({ state, dispatch, onClose }: Props) {
 
         {sport.hasBattingOrder && batting && state.battingOrder.length > 0 && (
           <div className="gv-group">
-            <button type="button" className="gv-btn" onClick={() => dispatch({ type: 'step-batter', delta: -1 })} title="Back one batter">
-              ‹ Batter
-            </button>
             <button type="button" className="gv-btn primary" onClick={() => dispatch({ type: 'step-batter', delta: 1 })} title="Move on to the next batter">
               Next batter ›
             </button>
@@ -117,7 +110,8 @@ export function GameView({ state, dispatch, onClose }: Props) {
         )}
       </footer>
       <p className="gv-foot muted small">
-        This {period.singular}&rsquo;s score goes in the highlighted column. Everything is saved in this browser, so you can lock the screen and come back.
+        Tap a box on the scoreboard to move to that {halves ? 'half' : period.singular}; the score you add goes in the highlighted one. Everything is
+        saved in this browser, so you can lock the screen and come back.
       </p>
     </div>
   )
@@ -140,7 +134,7 @@ function ScoreStepper({ label, value, unit, onChange }: { label: string; value: 
   )
 }
 
-function Scoreboard({ state, usName, themName }: { state: AppState; usName: string; themName: string }) {
+function Scoreboard({ state, dispatch, usName, themName }: { state: AppState; dispatch: (a: Action) => void; usName: string; themName: string }) {
   const { game } = state
   const halves = hasHalves(state)
   // Baseball scoreboards list the visitors on top; soccer just puts us first.
@@ -155,12 +149,15 @@ function Scoreboard({ state, usName, themName }: { state: AppState; usName: stri
         { name: themName, runs: game.them, mine: false },
       ]
 
+  // Either way round, the second row is the home team, who bat in the bottom.
+  const half = (rowIndex: number): Half => (rowIndex === 1 ? 'bottom' : 'top')
+  const liveRow = halves ? (game.half === 'bottom' ? 1 : 0) : -1
+
   /** Innings still to come are left blank, the way a real scoreboard leaves them. */
   const played = (rowIndex: number, i: number): boolean => {
     if (i < game.period) return true
     if (i > game.period) return false
     if (!halves) return true
-    // Either way round, the second row is the home team, who bat in the bottom.
     return rowIndex === 1 ? game.half === 'bottom' : true
   }
 
@@ -188,11 +185,22 @@ function Scoreboard({ state, usName, themName }: { state: AppState; usName: stri
               <th scope="row" className="sb-team">
                 {row.name}
               </th>
-              {row.runs.map((n, i) => (
-                <td key={i} className={i === game.period ? 'now' : ''}>
-                  {played(r, i) || n > 0 ? n : <span className="sb-blank">·</span>}
-                </td>
-              ))}
+              {row.runs.map((n, i) => {
+                const live = i === game.period && (halves ? r === liveRow : true)
+                return (
+                  <td key={i} className={`pick${i === game.period ? ' now' : ''}${live ? ' live' : ''}`}>
+                    <button
+                      type="button"
+                      className="sb-cell"
+                      aria-pressed={live}
+                      title={`Go to ${halves ? `the ${half(r)} of ` : ''}${periodTitle(state.periodName, i).toLowerCase()}`}
+                      onClick={() => dispatch({ type: 'set-period', period: i, half: half(r) })}
+                    >
+                      {played(r, i) || n > 0 ? n : <span className="sb-blank">·</span>}
+                    </button>
+                  </td>
+                )
+              })}
               <td className="sb-total">{totalScore(row.runs)}</td>
             </tr>
           ))}
@@ -229,6 +237,7 @@ function BattingCard({ state, dispatch, names, active }: BattingCardProps) {
         <span className="gv-updeck-label">On deck</span> {onDeck ? (names.get(onDeck) ?? '?') : '—'}
         <span className="gv-updeck-label">Then</span> {inTheHole ? (names.get(inTheHole) ?? '?') : '—'}
       </p>
+      <p className="gv-hint">Tap a name to put them at the plate.</p>
       <ol className="gv-order" ref={listRef}>
         {battingOrder.map((pid, i) => (
           <li key={pid} className={i === game.atBat ? 'at-bat' : ''}>

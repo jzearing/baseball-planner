@@ -37,9 +37,11 @@ const STEPS: { title: string; body: string }[] = [
     title: 'Game view on game day',
     body:
       'Fill in your team and the opponent under Game, then hit Game view for a full-screen dugout display: a scoreboard by ' +
-      'inning or quarter, the field with every name in position, and big buttons to step through the game and add runs or goals. ' +
-      'For baseball, say whether you are home or away and the batting order shows who is up. The score is saved as you go, so you ' +
-      'can lock the screen and come back.',
+      'inning or quarter, the field with every name in position, and big buttons to add runs or goals. ' +
+      'Tap a box on the scoreboard to move the game to that inning or quarter — for baseball each row is one team, so tapping their ' +
+      'row picks the top half and yours the bottom — or hit Next to step on one. For baseball, say whether you are home or away and ' +
+      'the batting order shows who is up; tap a name to put that batter at the plate. The score is saved as you go, so you can lock ' +
+      'the screen and come back.',
   },
   {
     title: 'Print, share and save',
