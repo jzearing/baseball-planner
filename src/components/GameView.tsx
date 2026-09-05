@@ -55,7 +55,25 @@ export function GameView({ state, dispatch, onClose }: Props) {
         </button>
       </header>
 
-      <Scoreboard state={state} dispatch={dispatch} usName={usName} themName={themName} />
+      <div className="gv-topbar">
+        <Scoreboard state={state} dispatch={dispatch} usName={usName} themName={themName} />
+        <div className="gv-score-panel">
+          <span className="gv-now">{periodStatus(state)}</span>
+          {halves ? (
+            <ScoreStepper
+              label={`${batting ? usName : themName} batting`}
+              value={(batting ? game.us : game.them)[game.period] ?? 0}
+              unit="run"
+              onChange={(delta) => dispatch({ type: 'score', team: batting ? 'us' : 'them', delta })}
+            />
+          ) : (
+            <>
+              <ScoreStepper label={usName} value={game.us[game.period] ?? 0} unit="goal" onChange={(delta) => dispatch({ type: 'score', team: 'us', delta })} />
+              <ScoreStepper label={themName} value={game.them[game.period] ?? 0} unit="goal" onChange={(delta) => dispatch({ type: 'score', team: 'them', delta })} />
+            </>
+          )}
+        </div>
+      </div>
 
       <div className="gv-body">
         <section className="gv-field">
@@ -76,23 +94,6 @@ export function GameView({ state, dispatch, onClose }: Props) {
         )}
       </div>
 
-      <footer className="gv-controls">
-        <span className="gv-now">{periodStatus(state)}</span>
-
-        {halves ? (
-          <ScoreStepper
-            label={`${batting ? usName : themName} batting`}
-            value={(batting ? game.us : game.them)[game.period] ?? 0}
-            unit="run"
-            onChange={(delta) => dispatch({ type: 'score', team: batting ? 'us' : 'them', delta })}
-          />
-        ) : (
-          <>
-            <ScoreStepper label={usName} value={game.us[game.period] ?? 0} unit="goal" onChange={(delta) => dispatch({ type: 'score', team: 'us', delta })} />
-            <ScoreStepper label={themName} value={game.them[game.period] ?? 0} unit="goal" onChange={(delta) => dispatch({ type: 'score', team: 'them', delta })} />
-          </>
-        )}
-      </footer>
       <p className="gv-foot muted small">
         Tap a box on the scoreboard to move the game there{sport.hasBattingOrder && ', or a name in the order to change the batter'}. Everything is saved
         in this browser, so you can lock the screen and come back.

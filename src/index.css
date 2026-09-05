@@ -859,8 +859,9 @@ body.touch-drag-active {
   background: var(--gv-bg);
   color: #f2f6f3;
   --gv-bg: #101a15;
-  /* How tall the field may get. Shrunk on short screens so the controls always fit. */
-  --gv-field-h: 54vh;
+  /* How tall the field may get: the viewport less the header, scoreboard band,
+     caption, bench line and footer. Measured rather than guessed at a fraction. */
+  --gv-field-h: calc(100vh - 262px);
   --turf: #4f9f5d;
   --turf-dark: #458d53;
   --clay: #b5734b;
@@ -917,8 +918,25 @@ body.touch-drag-active {
 }
 
 /* scoreboard */
-.scoreboard-wrap {
+.gv-topbar {
   flex: none;
+  position: relative;
+  z-index: 2;
+  background: var(--gv-bg);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem clamp(0.6rem, 2.5vw, 2rem);
+}
+.gv-score-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+.scoreboard-wrap {
+  max-width: 100%;
   overflow-x: auto;
   display: flex;
   justify-content: center;
@@ -1216,20 +1234,7 @@ body.touch-drag-active {
   font-weight: 700;
 }
 
-/* controls */
-.gv-controls {
-  flex: none;
-  position: relative;
-  z-index: 2;
-  background: var(--gv-bg);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem clamp(0.5rem, 3vw, 2rem);
-  padding-top: 0.4rem;
-  border-top: 1px solid var(--gv-line);
-}
+/* score steppers */
 .gv-group {
   display: flex;
   align-items: center;
@@ -1268,9 +1273,7 @@ body.touch-drag-active {
   line-height: 1;
 }
 .gv-now {
-  min-width: 7rem;
-  text-align: center;
-  font-size: clamp(1rem, 2.2vw, 1.3rem);
+  font-size: clamp(0.95rem, 2vw, 1.2rem);
   font-weight: 700;
   color: var(--gv-live);
 }
@@ -1279,6 +1282,8 @@ body.touch-drag-active {
   border-radius: 10px;
   padding: 0.25rem 0.5rem;
   background: rgba(0, 0, 0, 0.25);
+  align-self: stretch;
+  justify-content: flex-end;
 }
 .gv-stepper-label {
   font-size: 0.8rem;
@@ -1304,8 +1309,9 @@ body.touch-drag-active {
 
 /* Short screens: a phone on its side has very little height to spare. */
 @media (max-height: 620px) {
+  /* The footer note and the hint go, and the scoreboard shrinks, so less is spent. */
   .game-view {
-    --gv-field-h: 46vh;
+    --gv-field-h: calc(100vh - 236px);
   }
   .gv-foot,
   .gv-hint {
@@ -1320,12 +1326,6 @@ body.touch-drag-active {
     font-size: clamp(0.9rem, 1.8vw, 1.15rem);
   }
 }
-@media (max-height: 480px) {
-  .game-view {
-    --gv-field-h: 38vh;
-  }
-}
-
 /* Portrait phones: stack the batting order under the field. */
 @media (max-width: 760px), (orientation: portrait) and (max-width: 1000px) {
   .game-view {
