@@ -24,7 +24,9 @@ export function GameView({ state, dispatch, onClose }: Props) {
   const inning = state.plan[game.period]
   const bench = (inning?.bench ?? []).map((pid) => names.get(pid) ?? '?').filter(Boolean)
 
+  const rootRef = useRef<HTMLDivElement>(null)
   useWakeLock()
+  useSwipe(rootRef, dispatch)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -35,7 +37,7 @@ export function GameView({ state, dispatch, onClose }: Props) {
   }, [onClose])
 
   return (
-    <div className="game-view no-print" role="dialog" aria-modal="true" aria-label="Game view">
+    <div className="game-view no-print" role="dialog" aria-modal="true" aria-label="Game view" ref={rootRef}>
       <header className="gv-head">
         <button type="button" className="gv-exit" onClick={onClose}>
           ✕ Exit
@@ -75,7 +77,7 @@ export function GameView({ state, dispatch, onClose }: Props) {
         </div>
       </div>
 
-      <div className="gv-body">
+      <div className="gv-body" data-focus={batting ? 'batting' : 'field'}>
         <section className="gv-field">
           <h3 className="gv-caption">
             {periodTitle(state.periodName, game.period)} defense
@@ -95,8 +97,8 @@ export function GameView({ state, dispatch, onClose }: Props) {
       </div>
 
       <p className="gv-foot muted small">
-        Tap a box on the scoreboard to move the game there{sport.hasBattingOrder && ', or a name in the order to change the batter'}. Everything is saved
-        in this browser, so you can lock the screen and come back.
+        Tap a box on the scoreboard, or swipe sideways, to move the game along{sport.hasBattingOrder && '; tap a name in the order to change the batter'}.
+        Everything is saved in this browser, so you can lock the screen and come back.
       </p>
     </div>
   )
@@ -236,6 +238,51 @@ function BattingCard({ state, dispatch, names, active }: BattingCardProps) {
       </ol>
     </section>
   )
+}
+
+/**
+ * Swipe left for the next half or period and right for the previous one, so a
+ * coach can move the game on without aiming at anything.
+ */
+function useSwipe(ref: React.RefObject<HTMLDivElement | null>, dispatch: (a: Action) => void): void {
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const MIN_X = 60
+    let x = 0
+    let y = 0
+    let startedAt = 0
+    let tracking = false
+
+    const start = (e: TouchEvent) => {
+      tracking = false
+      if (e.touches.length !== 1) return
+      // A sideways drag on the scoreboard is scrolling it, not a swipe.
+      if ((e.target as Element | null)?.closest('.scoreboard-wrap')) return
+      x = e.touches[0].clientX
+      y = e.touches[0].clientY
+      startedAt = Date.now()
+      tracking = true
+    }
+    const end = (e: TouchEvent) => {
+      if (!tracking) return
+      tracking = false
+      const touch = e.changedTouches[0]
+      if (!touch || Date.now() - startedAt > 800) return
+      const dx = touch.clientX - x
+      const dy = touch.clientY - y
+      // Mostly sideways, and far enough to not be a tap or a scroll.
+      if (Math.abs(dx) < MIN_X || Math.abs(dx) < Math.abs(dy) * 1.5) return
+      dispatch({ type: 'step-period', delta: dx < 0 ? 1 : -1 })
+    }
+
+    el.addEventListener('touchstart', start, { passive: true })
+    el.addEventListener('touchend', end, { passive: true })
+    return () => {
+      el.removeEventListener('touchstart', start)
+      el.removeEventListener('touchend', end)
+    }
+  }, [ref, dispatch])
 }
 
 /** Keep the screen awake while the view is open; harmless where unsupported. */

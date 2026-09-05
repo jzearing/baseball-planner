@@ -1,10 +1,43 @@
 import { describe, expect, it } from 'vitest'
-import { addScore, emptyGame, goToPeriod, normalizeGame, ordinal, periodStatus, setBatter, totalScore, weAreBatting } from './game'
+import { addScore, emptyGame, goToPeriod, normalizeGame, ordinal, periodStatus, setBatter, stepGame, totalScore, weAreBatting } from './game'
 import { coerceState, defaultState } from './storage'
 import { reducer } from '../state'
 import type { GameState } from './types'
 
 const game = (patch: Partial<GameState> = {}): GameState => ({ ...emptyGame(6), ...patch })
+
+describe('stepGame (what a swipe does)', () => {
+  it('runs top to bottom to the next top', () => {
+    let g = game()
+    g = stepGame(g, 6, true, 1)
+    expect([g.period, g.half]).toEqual([0, 'bottom'])
+    g = stepGame(g, 6, true, 1)
+    expect([g.period, g.half]).toEqual([1, 'top'])
+  })
+
+  it('walks back the same way', () => {
+    const g = stepGame(stepGame(game(), 6, true, 1), 6, true, 1)
+    expect(stepGame(g, 6, true, -1)).toMatchObject({ period: 0, half: 'bottom' })
+  })
+
+  it('stops at both ends of the game', () => {
+    const first = game()
+    expect(stepGame(first, 6, true, -1)).toBe(first)
+    const last = game({ period: 5, half: 'bottom' })
+    expect(stepGame(last, 6, true, 1)).toBe(last)
+  })
+
+  it('moves a whole period where the sport has no halves', () => {
+    expect(stepGame(game({ period: 0 }), 4, false, 1).period).toBe(1)
+    expect(stepGame(game({ period: 3 }), 4, false, 1).period).toBe(3)
+    expect(stepGame(game({ period: 0 }), 4, false, -1).period).toBe(0)
+  })
+
+  it('keeps the score already on the board', () => {
+    const scored = addScore(game(), 'them', 2)
+    expect(stepGame(scored, 6, true, 1).them).toEqual([2, 0, 0, 0, 0, 0])
+  })
+})
 
 describe('goToPeriod', () => {
   it('jumps to a period and half, the way tapping a scoreboard box does', () => {

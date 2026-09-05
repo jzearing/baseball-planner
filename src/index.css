@@ -1326,19 +1326,53 @@ body.touch-drag-active {
     font-size: clamp(0.9rem, 1.8vw, 1.15rem);
   }
 }
-/* Portrait phones: stack the batting order under the field. */
-@media (max-width: 760px), (orientation: portrait) and (max-width: 1000px) {
-  .game-view {
-    --gv-field-h: 38vh;
+/* Phones: while we bat, the order takes the screen and reads from arm's length. */
+@media (max-width: 760px), (orientation: portrait) and (max-width: 1000px), (max-height: 500px) and (max-width: 950px) {
+  .gv-body[data-focus='batting'] {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: stretch;
   }
+  .gv-body[data-focus='batting'] .gv-field {
+    display: none;
+  }
+  .gv-body[data-focus='batting'] .gv-batting {
+    height: 100%;
+    /* Keeps the rows from stretching right across a landscape phone. */
+    max-width: 32rem;
+    margin: 0 auto;
+  }
+  .gv-body[data-focus='batting'] .gv-order {
+    max-height: none;
+    flex: 1 1 auto;
+  }
+  .gv-body[data-focus='batting'] .gv-order button {
+    font-size: clamp(1.1rem, 3.5vh, 1.4rem);
+    padding: 0.55rem 0.7rem;
+  }
+  .gv-body[data-focus='batting'] .gv-num {
+    width: 2rem;
+  }
+  .gv-body[data-focus='batting'] .gv-tag {
+    font-size: 0.8rem;
+  }
+  .gv-body[data-focus='batting'] .gv-updeck {
+    font-size: 1.05rem;
+  }
+}
+
+/*
+ * Narrow phones have no room for the order beside the field either, so the two
+ * take turns: swiping through the game alternates between them.
+ */
+@media (max-width: 760px), (orientation: portrait) and (max-width: 1000px) {
   .gv-body:has(.gv-batting) {
     grid-template-columns: minmax(0, 1fr);
   }
   .gv-foot {
     display: none;
   }
-  .gv-order {
-    max-height: 32vh;
+  .gv-body[data-focus='field'] .gv-batting {
+    display: none;
   }
 }
 

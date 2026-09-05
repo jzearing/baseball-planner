@@ -45,6 +45,12 @@ to a JSON file you can import later).
     tapping the home row's third box goes to the bottom of the 3rd. The box in play is ringed.
   - An overhead field — a diamond for baseball, a pitch for soccer — with every player's name
     where they are playing that period, plus the bench underneath.
+  - **Swipe sideways** anywhere on the screen to move a half-inning (or period) on and back —
+    handy with a phone in one hand. A mostly-vertical drag scrolls as usual, and a sideways one
+    on the scoreboard scrolls that instead.
+  - On a phone there is no room for the field and the batting order at once, so they take turns:
+    the field while you are in the field, and the order — large enough to read at arm's length —
+    while you bat. Swiping through the game alternates between them.
   - The +/− score buttons sit beside the scoreboard at the top, so the field gets the rest of
     the screen. Runs are added to whichever team is batting that half; soccer, where either
     side can score at any time, gets a pair per team. They are the only buttons on the screen —

@@ -43,6 +43,24 @@ export function weAreBatting(homeAway: HomeAway, half: Half): boolean {
 }
 
 /**
+ * Step the game on by one half-inning (baseball) or one period (soccer) — what a
+ * swipe does. Baseball runs top -> bottom -> next top; both stop at the ends.
+ */
+export function stepGame(game: GameState, periodCount: number, hasHalves: boolean, delta: 1 | -1): GameState {
+  const last = Math.max(0, periodCount - 1)
+  if (!hasHalves) {
+    const period = clamp(game.period + delta, 0, last)
+    return period === game.period ? game : { ...game, period }
+  }
+  // Count half-innings from the top of the first, then split back apart.
+  const total = game.period * 2 + (game.half === 'bottom' ? 1 : 0) + delta
+  const capped = clamp(total, 0, last * 2 + 1)
+  const period = Math.floor(capped / 2)
+  const half: Half = capped % 2 === 1 ? 'bottom' : 'top'
+  return period === game.period && half === game.half ? game : { ...game, period, half }
+}
+
+/**
  * Jump straight to a period, and for baseball to one half of it — what tapping a
  * box on the scoreboard does, since each row there is one team's half.
  */
