@@ -1,5 +1,6 @@
-import type { AppState, ConstraintInstance, ConstraintType, Inning, Player, PlayerId, PositionId, Preference } from './lib/types'
+import type { AppState, ConstraintInstance, ConstraintType, Half, HomeAway, Inning, Player, PlayerId, PositionId, Preference } from './lib/types'
 import { constraintDef } from './lib/constraints'
+import { addScore, emptyGame, goToPeriod, hasHalves, normalizeGame, setBatter, stepGame } from './lib/game'
 import {
   clearFixed,
   moveInColumn,
@@ -19,6 +20,9 @@ import { defaultState } from './lib/storage'
 
 export type Action =
   | { type: 'set-title'; title: string }
+  | { type: 'set-team-name'; name: string }
+  | { type: 'set-opponent'; name: string }
+  | { type: 'set-home-away'; homeAway: HomeAway }
   | { type: 'add-players'; names: string[] }
   | { type: 'rename-player'; id: PlayerId; name: string }
   | { type: 'toggle-player-active'; id: PlayerId }
@@ -50,6 +54,11 @@ export type Action =
   | { type: 'toggle-batting-fixed'; playerId: PlayerId }
   | { type: 'clear-batting-fixed' }
   | { type: 'clear-plan' }
+  | { type: 'set-period'; period: number; half: Half }
+  | { type: 'step-period'; delta: 1 | -1 }
+  | { type: 'score'; team: 'us' | 'them'; delta: number }
+  | { type: 'set-at-bat'; index: number }
+  | { type: 'reset-game' }
   | { type: 'import'; state: AppState }
   | { type: 'reset' }
 
@@ -65,10 +74,27 @@ function withRoster(state: AppState, players: Player[]): AppState {
   return next
 }
 
+/**
+ * Anything that changes the game length or the roster can leave the live score
+ * and the at-bat cursor pointing off the end, so every result is re-fitted.
+ */
 export function reducer(state: AppState, action: Action): AppState {
+  const next = apply(state, action)
+  if (next === state) return state
+  const game = normalizeGame(next.game, next.inningCount, next.battingOrder.length)
+  return game === next.game ? next : { ...next, game }
+}
+
+function apply(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'set-title':
       return { ...state, gameTitle: action.title }
+    case 'set-team-name':
+      return { ...state, teamName: action.name }
+    case 'set-opponent':
+      return { ...state, opponent: action.name }
+    case 'set-home-away':
+      return action.homeAway === state.homeAway ? state : { ...state, homeAway: action.homeAway }
     case 'add-players': {
       const added = action.names.map((n) => n.trim()).filter(Boolean).map((name) => ({ id: newId('p'), name, active: true }))
       if (added.length === 0) return state
@@ -106,6 +132,7 @@ export function reducer(state: AppState, action: Action): AppState {
         sport: action.sport,
         periodName: def.defaultPeriodName,
         inningCount: def.defaultPeriodCount,
+        game: emptyGame(def.defaultPeriodCount),
         positions: [...def.defaultPositions],
         // Position lists from the other sport no longer apply.
         preferences: state.preferences.map((p) => ({ ...p, positions: p.positions.filter((pos) => catalogHas(action.sport, pos)) })),
@@ -207,6 +234,16 @@ export function reducer(state: AppState, action: Action): AppState {
       next.plan = normalizePlan(next)
       return next
     }
+    case 'set-period':
+      return { ...state, game: goToPeriod(state.game, state.inningCount, hasHalves(state), action.period, action.half) }
+    case 'step-period':
+      return { ...state, game: stepGame(state.game, state.inningCount, hasHalves(state), action.delta) }
+    case 'score':
+      return { ...state, game: addScore(state.game, action.team, action.delta) }
+    case 'set-at-bat':
+      return { ...state, game: setBatter(state.game, state.battingOrder.length, action.index) }
+    case 'reset-game':
+      return { ...state, game: emptyGame(state.inningCount) }
     case 'import':
       return action.state
     case 'reset':

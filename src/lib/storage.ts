@@ -1,5 +1,6 @@
-import type { AppState, ConstraintInstance, Inning, Player } from './types'
+import type { AppState, ConstraintInstance, GameState, HomeAway, Inning, Player } from './types'
 import { normalizeConstraints } from './constraints'
+import { emptyGame, normalizeGame } from './game'
 import { normalizeBattingOrder, normalizePlan } from './plan'
 import { catalogFor, sortPositions, sportDef, type Sport } from './positions'
 
@@ -29,6 +30,10 @@ export function defaultState(sport: Sport = 'baseball'): AppState {
     sport,
     periodName: def.defaultPeriodName,
     gameTitle: '',
+    teamName: '',
+    opponent: '',
+    homeAway: 'home',
+    game: emptyGame(def.defaultPeriodCount),
     players: [],
     inningCount: def.defaultPeriodCount,
     positions: [...def.defaultPositions],
@@ -124,6 +129,10 @@ export function coerceState(raw: unknown): AppState {
     sport,
     periodName: typeof r.periodName === 'string' && r.periodName.trim() ? r.periodName.trim().slice(0, 20) : d.periodName,
     gameTitle: typeof r.gameTitle === 'string' ? r.gameTitle : '',
+    teamName: typeof r.teamName === 'string' ? r.teamName : '',
+    opponent: typeof r.opponent === 'string' ? r.opponent : '',
+    homeAway: r.homeAway === 'away' ? 'away' : ('home' as HomeAway),
+    game: coerceGame(r.game, inningCount),
     players,
     inningCount,
     positions: positions.length > 0 ? positions : d.positions,
@@ -136,7 +145,28 @@ export function coerceState(raw: unknown): AppState {
   state.plan = normalizePlan(state)
   state.battingOrder = normalizeBattingOrder(state.players, state.battingOrder)
   state.battingFixed = state.battingFixed.filter((pid) => state.battingOrder.includes(pid))
+  state.game = normalizeGame(state.game, state.inningCount, state.battingOrder.length)
   return state
+}
+
+/** Saves from before Game View existed simply have no game block. */
+function coerceGame(raw: unknown, periodCount: number): GameState {
+  const base = emptyGame(periodCount)
+  if (!raw || typeof raw !== 'object') return base
+  const g = raw as Record<string, unknown>
+  const nums = (v: unknown): number[] => (Array.isArray(v) ? v.map((x) => (typeof x === 'number' ? x : 0)) : [])
+  return normalizeGame(
+    {
+      period: typeof g.period === 'number' ? g.period : 0,
+      half: g.half === 'bottom' ? 'bottom' : 'top',
+      us: nums(g.us),
+      them: nums(g.them),
+      atBat: typeof g.atBat === 'number' ? g.atBat : 0,
+    },
+    periodCount,
+    // The batting order is normalized separately; leave the cursor alone for now.
+    Number.MAX_SAFE_INTEGER,
+  )
 }
 
 export function loadState(): AppState | null {

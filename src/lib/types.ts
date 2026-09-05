@@ -48,6 +48,29 @@ export interface Preference {
 
 export type SportId = 'baseball' | 'soccer'
 
+/** Which half of a baseball inning is in play. */
+export type Half = 'top' | 'bottom'
+
+/** Which dugout we are in. Decides which half of an inning we bat in. */
+export type HomeAway = 'home' | 'away'
+
+/**
+ * Live tracking for Game View. Stored with the rest of the setup so a coach who
+ * reloads or locks their phone mid-game comes back to the same score.
+ */
+export interface GameState {
+  /** Zero-based period (inning / half / quarter) in play. */
+  period: number
+  /** Baseball only: the half of the inning in play. Soccer ignores it. */
+  half: Half
+  /** Runs or goals our team scored, one entry per period. */
+  us: number[]
+  /** Runs or goals the opponent scored, one entry per period. */
+  them: number[]
+  /** Index into battingOrder of the batter at the plate. */
+  atBat: number
+}
+
 export interface AppState {
   /** 2 = constraints array order is the priority (older saves are migrated once). */
   version: 2
@@ -55,6 +78,13 @@ export interface AppState {
   /** Capitalised name of one game segment: "Inning", "Half", "Quarter"… */
   periodName: string
   gameTitle: string
+  /** Our team's name, shown on the Game View scoreboard. */
+  teamName: string
+  /** The other team's name, shown on the Game View scoreboard. */
+  opponent: string
+  /** Baseball only: home teams field the top half and bat the bottom. */
+  homeAway: HomeAway
+  game: GameState
   players: Player[]
   inningCount: number
   /** Enabled positions in display order. */

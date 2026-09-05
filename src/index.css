@@ -836,6 +836,546 @@ body.touch-drag-active {
   image-rendering: pixelated;
 }
 
+/* ---------- game view: the dugout display ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.game-view {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.6rem clamp(0.6rem, 2vw, 1.4rem) 0.5rem;
+  overflow: hidden;
+  background: var(--gv-bg);
+  color: #f2f6f3;
+  --gv-bg: #101a15;
+  /* How tall the field may get: the viewport less the header, scoreboard band,
+     caption, bench line and footer. Measured rather than guessed at a fraction. */
+  --gv-field-h: calc(100vh - 262px);
+  --turf: #4f9f5d;
+  --turf-dark: #458d53;
+  --clay: #b5734b;
+  --clay-light: #c6885c;
+  --chalk: rgba(255, 255, 255, 0.9);
+  --gv-line: rgba(255, 255, 255, 0.16);
+  --gv-panel: rgba(255, 255, 255, 0.06);
+  --gv-live: #fbbf24;
+}
+:root[data-sport='soccer'] .game-view {
+  --gv-bg: #0e1622;
+  --turf: #3f9152;
+  --turf-dark: #368047;
+}
+.gv-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  /* Both bars sit above the field, so an oversized field can never cover them. */
+  position: relative;
+  z-index: 2;
+  background: var(--gv-bg);
+}
+.gv-title {
+  flex: 1 1 auto;
+  margin: 0;
+  text-align: center;
+  font-size: clamp(1rem, 2.4vw, 1.45rem);
+  text-transform: none;
+  letter-spacing: 0;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gv-title .muted {
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 400;
+}
+.gv-exit,
+.gv-reset {
+  flex: none;
+  background: var(--gv-panel);
+  border: 1px solid var(--gv-line);
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+.gv-exit:hover,
+.gv-reset:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* scoreboard */
+.gv-topbar {
+  flex: none;
+  position: relative;
+  z-index: 2;
+  background: var(--gv-bg);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem clamp(0.6rem, 2.5vw, 2rem);
+}
+.gv-score-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+.scoreboard-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  display: flex;
+  justify-content: center;
+}
+.scoreboard {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  background: #0a1310;
+  border: 1px solid var(--gv-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.scoreboard th,
+.scoreboard td {
+  padding: 0.25rem clamp(0.4rem, 1.2vw, 0.8rem);
+  text-align: center;
+  font-size: clamp(0.95rem, 2.1vw, 1.35rem);
+  border-left: 1px solid var(--gv-line);
+}
+.scoreboard thead th {
+  font-size: clamp(0.7rem, 1.4vw, 0.9rem);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  padding-top: 0.35rem;
+}
+.scoreboard .sb-team {
+  text-align: left;
+  border-left: 0;
+  font-weight: 600;
+  font-size: clamp(0.8rem, 1.7vw, 1.05rem);
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scoreboard tbody tr + tr th,
+.scoreboard tbody tr + tr td {
+  border-top: 1px solid var(--gv-line);
+}
+.scoreboard tr.mine .sb-team {
+  color: var(--gv-live);
+}
+.scoreboard .sb-total {
+  background: rgba(255, 255, 255, 0.09);
+  font-weight: 700;
+}
+.scoreboard .now {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--gv-live);
+}
+/* The box you are actually in: tapping another one moves the game there. */
+.scoreboard td.pick {
+  padding: 0;
+}
+.sb-cell {
+  width: 100%;
+  min-height: 2.4rem;
+  padding: 0.25rem clamp(0.4rem, 1.2vw, 0.8rem);
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.sb-cell:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.scoreboard td.live {
+  background: rgba(251, 191, 36, 0.28);
+  box-shadow: inset 0 0 0 2px var(--gv-live);
+  color: var(--gv-live);
+  font-weight: 700;
+}
+.scoreboard thead .now {
+  color: var(--gv-live);
+}
+.sb-blank {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* body: field beside the batting order */
+.gv-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  /* Scroll inside the body rather than letting a tall field spill over the controls.
+     "safe" keeps the top reachable: plain centring would push it past the scroll origin. */
+  overflow-y: auto;
+  align-content: safe center;
+  justify-items: center;
+}
+.gv-body:has(.gv-batting) {
+  grid-template-columns: minmax(0, 1fr) minmax(11rem, 17rem);
+}
+.gv-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  min-width: 0;
+}
+.gv-caption {
+  margin: 0;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.62);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.gv-pill {
+  border: 1px solid var(--gv-line);
+  border-radius: 999px;
+  padding: 0.05rem 0.55rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: rgba(255, 255, 255, 0.75);
+}
+.gv-pill.batting {
+  background: rgba(251, 191, 36, 0.18);
+  border-color: rgba(251, 191, 36, 0.5);
+  color: var(--gv-live);
+}
+
+/* the field itself */
+.field-box {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  border-radius: 10px;
+  container-type: inline-size;
+  transition: opacity 0.2s;
+}
+.field-box.baseball {
+  aspect-ratio: 1;
+  max-width: min(100%, var(--gv-field-h));
+}
+.field-box.soccer {
+  aspect-ratio: 0.72;
+  max-width: min(100%, calc(var(--gv-field-h) * 0.72));
+}
+.field-box.dim {
+  opacity: 0.62;
+}
+.field-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+}
+.spots {
+  position: absolute;
+  inset: 0;
+}
+.spot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+  padding: 0.15em 0.45em;
+  border-radius: 6px;
+  background: rgba(8, 20, 14, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
+  max-width: 30cqw;
+}
+.spot-pos {
+  font-size: 2.8cqw;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--gv-live);
+}
+.spot-name {
+  font-size: 4cqw;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.spot.empty {
+  border-style: dashed;
+  color: rgba(255, 255, 255, 0.55);
+}
+.gv-bench {
+  margin: 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+.gv-bench-label {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-right: 0.35rem;
+}
+
+/* batting order card */
+.gv-batting {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  min-height: 0;
+  max-height: 100%;
+}
+.gv-updeck {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+.gv-updeck-label {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-right: 0.3rem;
+}
+.gv-updeck-label + .gv-updeck-label,
+.gv-updeck .gv-updeck-label ~ .gv-updeck-label {
+  margin-left: 0.6rem;
+}
+.gv-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.38);
+}
+.gv-order {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  min-height: 0;
+  border: 1px solid var(--gv-line);
+  border-radius: 10px;
+  background: var(--gv-panel);
+}
+.gv-order li + li {
+  border-top: 1px solid var(--gv-line);
+}
+.gv-order button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: none;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.gv-order button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.gv-num {
+  flex: none;
+  width: 1.5rem;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+.gv-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gv-order .at-bat {
+  background: rgba(251, 191, 36, 0.16);
+}
+.gv-order .at-bat .gv-name {
+  font-weight: 700;
+  color: var(--gv-live);
+}
+.gv-tag {
+  flex: none;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--gv-live);
+  color: #1a1205;
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+  font-weight: 700;
+}
+
+/* score steppers */
+.gv-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.gv-btn {
+  background: var(--gv-panel);
+  border: 1px solid var(--gv-line);
+  color: inherit;
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 2.6rem;
+}
+.gv-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+.gv-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.gv-btn.primary {
+  background: var(--gv-live);
+  border-color: var(--gv-live);
+  color: #1a1205;
+}
+.gv-btn.primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.gv-btn.round {
+  width: 2.6rem;
+  padding: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.gv-now {
+  font-size: clamp(0.95rem, 2vw, 1.2rem);
+  font-weight: 700;
+  color: var(--gv-live);
+}
+.score-stepper {
+  border: 1px solid var(--gv-line);
+  border-radius: 10px;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 0, 0, 0.25);
+  align-self: stretch;
+  justify-content: flex-end;
+}
+.gv-stepper-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gv-stepper-value {
+  min-width: 1.6rem;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.gv-foot {
+  flex: none;
+  margin: 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Short screens: a phone on its side has very little height to spare. */
+@media (max-height: 620px) {
+  /* The footer note and the hint go, and the scoreboard shrinks, so less is spent. */
+  .game-view {
+    --gv-field-h: calc(100vh - 236px);
+  }
+  .gv-foot,
+  .gv-hint {
+    display: none;
+  }
+  /* A scoreboard sized for thumbs would eat a landscape phone; trim it back. */
+  .sb-cell {
+    min-height: 1.9rem;
+  }
+  .scoreboard th,
+  .scoreboard td {
+    font-size: clamp(0.9rem, 1.8vw, 1.15rem);
+  }
+}
+/* Phones: while we bat, the order takes the screen and reads from arm's length. */
+@media (max-width: 760px), (orientation: portrait) and (max-width: 1000px), (max-height: 500px) and (max-width: 950px) {
+  .gv-body[data-focus='batting'] {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: stretch;
+  }
+  .gv-body[data-focus='batting'] .gv-field {
+    display: none;
+  }
+  .gv-body[data-focus='batting'] .gv-batting {
+    height: 100%;
+    /* Keeps the rows from stretching right across a landscape phone. */
+    max-width: 32rem;
+    margin: 0 auto;
+  }
+  .gv-body[data-focus='batting'] .gv-order {
+    max-height: none;
+    flex: 1 1 auto;
+  }
+  .gv-body[data-focus='batting'] .gv-order button {
+    font-size: clamp(1.1rem, 3.5vh, 1.4rem);
+    padding: 0.55rem 0.7rem;
+  }
+  .gv-body[data-focus='batting'] .gv-num {
+    width: 2rem;
+  }
+  .gv-body[data-focus='batting'] .gv-tag {
+    font-size: 0.8rem;
+  }
+  .gv-body[data-focus='batting'] .gv-updeck {
+    font-size: 1.05rem;
+  }
+}
+
+/*
+ * Narrow phones have no room for the order beside the field either, so the two
+ * take turns: swiping through the game alternates between them.
+ */
+@media (max-width: 760px), (orientation: portrait) and (max-width: 1000px) {
+  .gv-body:has(.gv-batting) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .gv-foot {
+    display: none;
+  }
+  .gv-body[data-focus='field'] .gv-batting {
+    display: none;
+  }
+}
+
 /* ---------- print: one letter sheet ---------- */
 /* Some browsers (Safari, iOS) ignore @page margins, so the content also pads itself. */
 @page {

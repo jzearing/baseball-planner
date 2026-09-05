@@ -3,6 +3,7 @@ import { BattingOrder } from './components/BattingOrder'
 import { ConstraintPanel } from './components/ConstraintPanel'
 import { installTouchDnd } from './components/dnd'
 import { FieldTable } from './components/FieldTable'
+import { GameView } from './components/GameView'
 import { PreferencePanel } from './components/PreferencePanel'
 import { QrModal } from './components/QrModal'
 import { RosterEditor } from './components/RosterEditor'
@@ -28,6 +29,7 @@ export default function App() {
   const [notice, setNotice] = useState<string | null>(null)
   const [showTutorial, setShowTutorial] = useState(() => !tutorialSeen())
   const [qrUrl, setQrUrl] = useState<string | null>(null)
+  const [gameView, setGameView] = useState(false)
   const [railTab, setRailTab] = useState<'constraints' | 'preferences'>('constraints')
   const fileInput = useRef<HTMLInputElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -133,6 +135,18 @@ export default function App() {
     }
   }
 
+  const openGameView = () => {
+    setGameView(true)
+    // A real full screen is nicer on a phone propped up in the dugout, but every
+    // browser is entitled to refuse; the overlay covers the viewport regardless.
+    document.documentElement.requestFullscreen?.().catch(() => {})
+  }
+
+  const closeGameView = () => {
+    setGameView(false)
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
+  }
+
   const closeTutorial = () => {
     markTutorialSeen()
     setShowTutorial(false)
@@ -199,6 +213,15 @@ export default function App() {
               Unlock all
             </button>
           )}
+          <button
+            type="button"
+            className="secondary"
+            disabled={!hasPlan}
+            onClick={() => openGameView()}
+            title="Full-screen scoreboard and field for the dugout"
+          >
+            Game view
+          </button>
           <span className="spacer" />
           <button type="button" className="secondary" onClick={() => void onShareLink()} disabled={state.players.length === 0} title="A link that carries the whole setup; whoever opens it gets an editable copy">
             Share link
@@ -292,6 +315,7 @@ export default function App() {
           </p>
         </section>
       </aside>
+      {gameView && <GameView state={state} dispatch={dispatch} onClose={closeGameView} />}
       <Tutorial open={showTutorial} onClose={closeTutorial} />
       <QrModal key={qrUrl ?? ''} url={qrUrl} title={state.gameTitle} onClose={() => setQrUrl(null)} />
     </div>

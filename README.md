@@ -1,8 +1,9 @@
 # Lineup Planner
 
 A single-page app that helps youth baseball and soccer coaches plan which player plays which
-position in each inning, half or quarter, plus a batting order for baseball. Everything runs in the browser: there is
-no backend, and the roster, rules and plan are saved to `localStorage` (or exported
+position in each inning, half or quarter, plus a batting order for baseball, and then run the game
+from the dugout with a full-screen scoreboard and field. Everything runs in the browser: there is
+no backend, and the roster, rules, plan and live score are saved to `localStorage` (or exported
 to a JSON file you can import later).
 
 ## Features
@@ -37,6 +38,29 @@ to a JSON file you can import later).
 - Lock (🔒) any player in place; **Randomize lineup** always leaves locked players where they
   are and re-solves everyone else. Batters can be locked too, so Shuffle keeps them in their spot.
 - A batting order with the same drag-to-swap / drop-between-to-insert mechanics.
+- **Game view** turns the screen into a dugout/sideline display:
+  - A scoreboard across the top with the score by inning (or quarter or half) and the running
+    total, laid out the usual way with the visitors on the first row. Innings still to come are
+    left blank. Tap any box to move the game there: for baseball each row is one team's half, so
+    tapping the home row's third box goes to the bottom of the 3rd. The box in play is ringed.
+  - An overhead field — a diamond for baseball, a pitch for soccer — with every player's name
+    where they are playing that period, plus the bench underneath.
+  - **Swipe sideways** anywhere on the screen to move a half-inning (or period) on and back —
+    handy with a phone in one hand. A mostly-vertical drag scrolls as usual, and a sideways one
+    on the scoreboard scrolls that instead.
+  - On a phone there is no room for the field and the batting order at once, so they take turns:
+    the field while you are in the field, and the order — large enough to read at arm's length —
+    while you bat. Swiping through the game alternates between them.
+  - The +/− score buttons sit beside the scoreboard at the top, so the field gets the rest of
+    the screen. Runs are added to whichever team is batting that half; soccer, where either
+    side can score at any time, gets a pair per team. They are the only buttons on the screen —
+    everything else is a tap on the thing itself.
+  - For baseball, the batting order with the batter at the plate highlighted and who is on deck.
+    Tap any name to put that batter up.
+  - The screen is kept awake where the browser allows it, and the score survives a reload, so
+    you can lock your phone between innings.
+  - Set your team, the opponent and (for baseball) home or away under **Game** on the left.
+    Home teams field the top half and bat the bottom; away teams the other way round.
 - Share a colour image of the plan straight to a text message (on browsers that support
   sharing files; elsewhere the image downloads), export to CSV, export/import JSON, and a
   landscape Print view that fits on one letter sheet.
