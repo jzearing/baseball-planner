@@ -45,11 +45,11 @@ to a JSON file you can import later).
     tapping the home row's third box goes to the bottom of the 3rd. The box in play is ringed.
   - An overhead field — a diamond for baseball, a pitch for soccer — with every player's name
     where they are playing that period, plus the bench underneath.
-  - **Next** steps the game on, since that is the usual move: top → bottom → next top for
-    baseball, one period at a time for soccer. Runs are added to whichever team is batting that
-    half; soccer, where either side can score at any time, gets a +/− pair per team.
+  - Runs are added to whichever team is batting that half; soccer, where either side can score
+    at any time, gets a +/− pair per team. Those steppers are the only buttons in the bar —
+    everything else is a tap on the thing itself.
   - For baseball, the batting order with the batter at the plate highlighted and who is on deck.
-    Tap any name to put that batter up, or hit **Next batter** to move on one.
+    Tap any name to put that batter up.
   - The screen is kept awake where the browser allows it, and the score survives a reload, so
     you can lock your phone between innings.
   - Set your team, the opponent and (for baseball) home or away under **Game** on the left.

@@ -1,6 +1,6 @@
 import type { AppState, ConstraintInstance, ConstraintType, Half, HomeAway, Inning, Player, PlayerId, PositionId, Preference } from './lib/types'
 import { constraintDef } from './lib/constraints'
-import { addScore, emptyGame, goToPeriod, hasHalves, normalizeGame, setBatter, stepBatter, stepGame } from './lib/game'
+import { addScore, emptyGame, goToPeriod, hasHalves, normalizeGame, setBatter } from './lib/game'
 import {
   clearFixed,
   moveInColumn,
@@ -54,10 +54,8 @@ export type Action =
   | { type: 'toggle-batting-fixed'; playerId: PlayerId }
   | { type: 'clear-batting-fixed' }
   | { type: 'clear-plan' }
-  | { type: 'step-period'; delta: 1 | -1 }
   | { type: 'set-period'; period: number; half: Half }
   | { type: 'score'; team: 'us' | 'them'; delta: number }
-  | { type: 'step-batter'; delta: number }
   | { type: 'set-at-bat'; index: number }
   | { type: 'reset-game' }
   | { type: 'import'; state: AppState }
@@ -235,14 +233,10 @@ function apply(state: AppState, action: Action): AppState {
       next.plan = normalizePlan(next)
       return next
     }
-    case 'step-period':
-      return { ...state, game: stepGame(state.game, state.inningCount, hasHalves(state), action.delta) }
     case 'set-period':
       return { ...state, game: goToPeriod(state.game, state.inningCount, hasHalves(state), action.period, action.half) }
     case 'score':
       return { ...state, game: addScore(state.game, action.team, action.delta) }
-    case 'step-batter':
-      return { ...state, game: stepBatter(state.game, state.battingOrder.length, action.delta) }
     case 'set-at-bat':
       return { ...state, game: setBatter(state.game, state.battingOrder.length, action.index) }
     case 'reset-game':

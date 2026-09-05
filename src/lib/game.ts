@@ -43,24 +43,6 @@ export function weAreBatting(homeAway: HomeAway, half: Half): boolean {
 }
 
 /**
- * Step the game on by one half-inning (baseball) or one period (soccer).
- * Baseball runs top → bottom → next top; both stop at the end of the game.
- */
-export function stepGame(game: GameState, periodCount: number, hasHalves: boolean, delta: 1 | -1): GameState {
-  const last = Math.max(0, periodCount - 1)
-  if (!hasHalves) {
-    const period = clamp(game.period + delta, 0, last)
-    return period === game.period ? game : { ...game, period }
-  }
-  // Count half-innings from the top of the first, then split back apart.
-  const total = game.period * 2 + (game.half === 'bottom' ? 1 : 0) + delta
-  const capped = clamp(total, 0, last * 2 + 1)
-  const period = Math.floor(capped / 2)
-  const half: Half = capped % 2 === 1 ? 'bottom' : 'top'
-  return period === game.period && half === game.half ? game : { ...game, period, half }
-}
-
-/**
  * Jump straight to a period, and for baseball to one half of it — what tapping a
  * box on the scoreboard does, since each row there is one team's half.
  */
@@ -82,13 +64,6 @@ export function addScore(game: GameState, team: 'us' | 'them', delta: number): G
 
 export function totalScore(list: number[]): number {
   return list.reduce((a, b) => a + b, 0)
-}
-
-/** Move the at-bat cursor, wrapping around the bottom of the order. */
-export function stepBatter(game: GameState, battingCount: number, delta: number): GameState {
-  if (battingCount <= 0) return game
-  const atBat = (((game.atBat + delta) % battingCount) + battingCount) % battingCount
-  return atBat === game.atBat ? game : { ...game, atBat }
 }
 
 export function setBatter(game: GameState, battingCount: number, index: number): GameState {

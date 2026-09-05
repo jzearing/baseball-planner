@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import type { AppState, Half, PlayerId } from '../lib/types'
 import { battingFrom, hasHalves, periodStatus, totalScore, weAreBatting } from '../lib/game'
-import { periodNoun, periodTitle, sportDef } from '../lib/positions'
+import { periodTitle, sportDef } from '../lib/positions'
 import type { Action } from '../state'
 import { FieldDiagram } from './FieldDiagram'
 
@@ -14,7 +14,6 @@ interface Props {
 /** Full-screen dugout display: live score, the field as it stands, and who is up. */
 export function GameView({ state, dispatch, onClose }: Props) {
   const sport = sportDef(state.sport)
-  const period = periodNoun(state.periodName)
   const halves = hasHalves(state)
   const { game } = state
   const names = useMemo(() => new Map(state.players.map((p) => [p.id, p.name])), [state.players])
@@ -34,8 +33,6 @@ export function GameView({ state, dispatch, onClose }: Props) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
-
-  const atEnd = game.period === state.inningCount - 1 && (!halves || game.half === 'bottom')
 
   return (
     <div className="game-view no-print" role="dialog" aria-modal="true" aria-label="Game view">
@@ -80,12 +77,7 @@ export function GameView({ state, dispatch, onClose }: Props) {
       </div>
 
       <footer className="gv-controls">
-        <div className="gv-group">
-          <span className="gv-now">{periodStatus(state)}</span>
-          <button type="button" className="gv-btn" disabled={atEnd} onClick={() => dispatch({ type: 'step-period', delta: 1 })} title="Move on to the next half or period">
-            Next ›
-          </button>
-        </div>
+        <span className="gv-now">{periodStatus(state)}</span>
 
         {halves ? (
           <ScoreStepper
@@ -100,18 +92,10 @@ export function GameView({ state, dispatch, onClose }: Props) {
             <ScoreStepper label={themName} value={game.them[game.period] ?? 0} unit="goal" onChange={(delta) => dispatch({ type: 'score', team: 'them', delta })} />
           </>
         )}
-
-        {sport.hasBattingOrder && batting && state.battingOrder.length > 0 && (
-          <div className="gv-group">
-            <button type="button" className="gv-btn primary" onClick={() => dispatch({ type: 'step-batter', delta: 1 })} title="Move on to the next batter">
-              Next batter ›
-            </button>
-          </div>
-        )}
       </footer>
       <p className="gv-foot muted small">
-        Tap a box on the scoreboard to move to that {halves ? 'half' : period.singular}; the score you add goes in the highlighted one. Everything is
-        saved in this browser, so you can lock the screen and come back.
+        Tap a box on the scoreboard to move the game there{sport.hasBattingOrder && ', or a name in the order to change the batter'}. Everything is saved
+        in this browser, so you can lock the screen and come back.
       </p>
     </div>
   )

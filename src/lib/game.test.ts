@@ -1,42 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { addScore, emptyGame, goToPeriod, normalizeGame, ordinal, periodStatus, stepBatter, stepGame, totalScore, weAreBatting } from './game'
+import { addScore, emptyGame, goToPeriod, normalizeGame, ordinal, periodStatus, setBatter, totalScore, weAreBatting } from './game'
 import { coerceState, defaultState } from './storage'
 import { reducer } from '../state'
 import type { GameState } from './types'
 
 const game = (patch: Partial<GameState> = {}): GameState => ({ ...emptyGame(6), ...patch })
-
-describe('stepGame with halves', () => {
-  it('runs top to bottom to the next top', () => {
-    let g = game()
-    expect([g.period, g.half]).toEqual([0, 'top'])
-    g = stepGame(g, 6, true, 1)
-    expect([g.period, g.half]).toEqual([0, 'bottom'])
-    g = stepGame(g, 6, true, 1)
-    expect([g.period, g.half]).toEqual([1, 'top'])
-  })
-
-  it('walks back the same way', () => {
-    const g = stepGame(stepGame(game(), 6, true, 1), 6, true, 1)
-    const back = stepGame(g, 6, true, -1)
-    expect([back.period, back.half]).toEqual([0, 'bottom'])
-  })
-
-  it('stops at both ends of the game', () => {
-    expect(stepGame(game(), 6, true, -1)).toEqual(game())
-    const last = game({ period: 5, half: 'bottom' })
-    expect(stepGame(last, 6, true, 1)).toBe(last)
-  })
-})
-
-describe('stepGame without halves', () => {
-  it('moves one period at a time and clamps', () => {
-    const g = stepGame(game({ period: 0 }), 4, false, 1)
-    expect(g.period).toBe(1)
-    expect(stepGame(game({ period: 3 }), 4, false, 1).period).toBe(3)
-    expect(stepGame(game({ period: 0 }), 4, false, -1).period).toBe(0)
-  })
-})
 
 describe('goToPeriod', () => {
   it('jumps to a period and half, the way tapping a scoreboard box does', () => {
@@ -90,14 +58,17 @@ describe('addScore', () => {
   })
 })
 
-describe('stepBatter', () => {
-  it('wraps around the bottom of the order', () => {
-    expect(stepBatter(game({ atBat: 8 }), 9, 1).atBat).toBe(0)
-    expect(stepBatter(game({ atBat: 0 }), 9, -1).atBat).toBe(8)
+describe('setBatter', () => {
+  it('puts the tapped batter at the plate', () => {
+    expect(setBatter(game(), 9, 5).atBat).toBe(5)
+  })
+  it('clamps past the bottom of the order', () => {
+    expect(setBatter(game(), 9, 20).atBat).toBe(8)
+    expect(setBatter(game(), 9, -2).atBat).toBe(0)
   })
   it('does nothing with an empty order', () => {
     const g = game()
-    expect(stepBatter(g, 0, 1)).toBe(g)
+    expect(setBatter(g, 0, 3)).toBe(g)
   })
 })
 
@@ -131,8 +102,7 @@ describe('periodStatus', () => {
 describe('game state through the reducer', () => {
   it('re-fits the score when the game gets shorter', () => {
     let state = defaultState()
-    state = reducer(state, { type: 'step-period', delta: 1 })
-    state = reducer(state, { type: 'step-period', delta: 1 })
+    state = reducer(state, { type: 'set-period', period: 1, half: 'top' })
     state = reducer(state, { type: 'score', team: 'us', delta: 2 })
     expect(state.game.us).toEqual([0, 2, 0, 0, 0, 0])
 
@@ -174,7 +144,7 @@ describe('game state through the reducer', () => {
     let state = defaultState()
     state = reducer(state, { type: 'add-players', names: ['Ava', 'Ben'] })
     state = reducer(state, { type: 'score', team: 'them', delta: 3 })
-    state = reducer(state, { type: 'step-period', delta: 1 })
+    state = reducer(state, { type: 'set-period', period: 2, half: 'bottom' })
     state = reducer(state, { type: 'reset-game' })
     expect(totalScore(state.game.them)).toBe(0)
     expect(state.game.period).toBe(0)
