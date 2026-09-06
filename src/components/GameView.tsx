@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AppState, Half, PlayerId } from '../lib/types'
-import { battingFrom, hasHalves, periodStatus, totalScore, weAreBatting } from '../lib/game'
+import { battingFrom, hasHalves, periodStatus, slideAt, slideCount, slideOf, totalScore, weAreBatting } from '../lib/game'
 import { periodTitle, sportDef } from '../lib/positions'
 import type { Action } from '../state'
 import { FieldDiagram } from './FieldDiagram'
@@ -21,12 +21,12 @@ export function GameView({ state, dispatch, onClose }: Props) {
   const usName = state.teamName.trim() || 'Us'
   const themName = state.opponent.trim() || 'Opponent'
   const batting = halves ? weAreBatting(state.homeAway, game.half) : false
-  const inning = state.plan[game.period]
-  const bench = (inning?.bench ?? []).map((pid) => names.get(pid) ?? '?').filter(Boolean)
 
-  const rootRef = useRef<HTMLDivElement>(null)
+  const count = slideCount(state.inningCount, halves)
+  const index = slideOf(game, halves)
+  const { viewportRef, trackStyle, moving, onSettled } = useCarousel(index, count, dispatch)
+
   useWakeLock()
-  useSwipe(rootRef, dispatch)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -37,7 +37,7 @@ export function GameView({ state, dispatch, onClose }: Props) {
   }, [onClose])
 
   return (
-    <div className="game-view no-print" role="dialog" aria-modal="true" aria-label="Game view" ref={rootRef}>
+    <div className="game-view no-print" role="dialog" aria-modal="true" aria-label="Game view">
       <header className="gv-head">
         <button type="button" className="gv-exit" onClick={onClose}>
           ✕ Exit
@@ -77,23 +77,31 @@ export function GameView({ state, dispatch, onClose }: Props) {
         </div>
       </div>
 
-      <div className="gv-body" data-focus={batting ? 'batting' : 'field'}>
-        <section className="gv-field">
-          <h3 className="gv-caption">
-            {periodTitle(state.periodName, game.period)} defense
-            {halves && <span className={`gv-pill${batting ? ' batting' : ''}`}>{batting ? 'We are batting' : 'We are in the field'}</span>}
-          </h3>
-          <FieldDiagram sport={sport.id} positions={state.positions} inning={inning} names={names} dim={batting} />
-          {bench.length > 0 && (
-            <p className="gv-bench">
-              <span className="gv-bench-label">Bench</span> {bench.join(' · ')}
-            </p>
-          )}
-        </section>
-
-        {sport.hasBattingOrder && state.battingOrder.length > 0 && (
-          <BattingCard state={state} dispatch={dispatch} names={names} active={batting} />
-        )}
+      {/* One slide per half-inning, dragged sideways with the finger. */}
+      <div className="gv-viewport" ref={viewportRef}>
+        <div className="gv-track" data-moving={moving} style={trackStyle} onTransitionEnd={onSettled}>
+          {Array.from({ length: count }, (_, s) => {
+            const { period, half } = slideAt(s, halves)
+            const slideBatting = halves ? weAreBatting(state.homeAway, half) : false
+            const current = s === index
+            return (
+              <div key={s} className="gv-slide" data-focus={slideBatting ? 'batting' : 'field'} aria-hidden={!current} inert={!current}>
+                {/* Only the slide in view and its two neighbours are built; nothing else can be seen. */}
+                {Math.abs(s - index) <= 1 && (
+                  <Half
+                    state={state}
+                    dispatch={dispatch}
+                    names={names}
+                    period={period}
+                    batting={slideBatting}
+                    showStatus={halves}
+                    active={current}
+                  />
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       <p className="gv-foot muted small">
@@ -102,6 +110,172 @@ export function GameView({ state, dispatch, onClose }: Props) {
       </p>
     </div>
   )
+}
+
+interface HalfProps {
+  state: AppState
+  dispatch: (a: Action) => void
+  names: Map<PlayerId, string>
+  period: number
+  batting: boolean
+  showStatus: boolean
+  active: boolean
+}
+
+/** What one half-inning shows: the field for that period, and the order for baseball. */
+function Half({ state, dispatch, names, period, batting, showStatus, active }: HalfProps) {
+  const sport = sportDef(state.sport)
+  const inning = state.plan[period]
+  const bench = (inning?.bench ?? []).map((pid) => names.get(pid) ?? '?').filter(Boolean)
+  return (
+    <>
+      <section className="gv-field">
+        <h3 className="gv-caption">
+          {periodTitle(state.periodName, period)} defense
+          {showStatus && <span className={`gv-pill${batting ? ' batting' : ''}`}>{batting ? 'We are batting' : 'We are in the field'}</span>}
+        </h3>
+        <FieldDiagram sport={sport.id} positions={state.positions} inning={inning} names={names} dim={batting} />
+        {bench.length > 0 && (
+          <p className="gv-bench">
+            <span className="gv-bench-label">Bench</span> {bench.join(' · ')}
+          </p>
+        )}
+      </section>
+
+      {sport.hasBattingOrder && state.battingOrder.length > 0 && (
+        <BattingCard state={state} dispatch={dispatch} names={names} active={batting} scrollToPlate={active} />
+      )}
+    </>
+  )
+}
+
+interface Carousel {
+  viewportRef: React.RefObject<HTMLDivElement | null>
+  trackStyle: React.CSSProperties
+  /** True while the track is off its resting position, i.e. mid-drag or settling. */
+  moving: boolean
+  onSettled: () => void
+}
+
+/** Release past this share of the width and the game moves on; below it, it springs back. */
+const SNAP_FRACTION = 0.3
+/** How far a finger travels before we decide it is a swipe rather than a scroll. */
+const AXIS_LOCK_PX = 8
+/** Past the first or last half-inning there is nothing to show, so the drag drags back. */
+const EDGE_RESISTANCE = 0.25
+/** A quick flick also moves the game on, since 30% of a wide screen is a long haul. */
+const FLICK_SPEED = 0.4
+const FLICK_MIN_PX = 40
+/** Speed is read over the tail of the gesture, not the last move, which is too jumpy. */
+const FLICK_WINDOW_MS = 120
+
+/**
+ * Slides the half-innings sideways under the finger, so the next one comes into
+ * view as it is pulled rather than appearing all at once.
+ */
+function useCarousel(index: number, count: number, dispatch: (a: Action) => void): Carousel {
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(0)
+  const [drag, setDrag] = useState(0)
+  const [animating, setAnimating] = useState(false)
+  const dragRef = useRef(0)
+
+  useEffect(() => {
+    const el = viewportRef.current
+    if (!el) return
+    const measure = () => setWidth(el.clientWidth)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const el = viewportRef.current
+    if (!el || width === 0) return
+    let startX = 0
+    let startY = 0
+    let trail: { x: number; at: number }[] = []
+    let axis: 'x' | 'y' | null = null
+    let tracking = false
+
+    const move = (to: number) => {
+      dragRef.current = to
+      setDrag(to)
+    }
+
+    const onStart = (e: TouchEvent) => {
+      axis = null
+      tracking = false
+      if (e.touches.length !== 1) return
+      // A sideways drag on the scoreboard is scrolling it, not a swipe.
+      if ((e.target as Element | null)?.closest('.scoreboard-wrap')) return
+      startX = e.touches[0].clientX
+      startY = e.touches[0].clientY
+      trail = [{ x: startX, at: performance.now() }]
+      tracking = true
+      setAnimating(false)
+    }
+
+    const onMove = (e: TouchEvent) => {
+      if (!tracking) return
+      const dx = e.touches[0].clientX - startX
+      const dy = e.touches[0].clientY - startY
+      if (!axis) {
+        if (Math.abs(dx) < AXIS_LOCK_PX && Math.abs(dy) < AXIS_LOCK_PX) return
+        // Mostly upright means they are scrolling the order, so let go of the gesture.
+        axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+        if (axis === 'y') {
+          tracking = false
+          return
+        }
+      }
+      e.preventDefault()
+      const at = performance.now()
+      trail.push({ x: e.touches[0].clientX, at })
+      while (trail.length > 2 && at - trail[0].at > FLICK_WINDOW_MS) trail.shift()
+      const past = (dx > 0 && index === 0) || (dx < 0 && index === count - 1)
+      move(past ? dx * EDGE_RESISTANCE : dx)
+    }
+
+    const onEnd = () => {
+      if (!tracking) return
+      tracking = false
+      const travelled = dragRef.current
+      setAnimating(true)
+      move(0)
+      const first = trail[0]
+      const last = trail[trail.length - 1]
+      const span = last && first ? last.at - first.at : 0
+      const speed = span > 0 ? (last.x - first.x) / span : 0
+      // A flick counts only if it was still heading the way the drag went, so a
+      // pull that is yanked back at the last moment stays put.
+      const flicked = Math.abs(speed) > FLICK_SPEED && Math.abs(travelled) > FLICK_MIN_PX && Math.sign(speed) === Math.sign(travelled)
+      if (Math.abs(travelled) > width * SNAP_FRACTION || flicked) dispatch({ type: 'step-period', delta: travelled < 0 ? 1 : -1 })
+    }
+
+    // touchmove cannot be passive: a sideways drag has to stop the page scrolling with it.
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchmove', onMove, { passive: false })
+    el.addEventListener('touchend', onEnd, { passive: true })
+    el.addEventListener('touchcancel', onEnd, { passive: true })
+    return () => {
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchmove', onMove)
+      el.removeEventListener('touchend', onEnd)
+      el.removeEventListener('touchcancel', onEnd)
+    }
+  }, [width, index, count, dispatch])
+
+  return {
+    viewportRef,
+    trackStyle: {
+      transform: `translate3d(${-index * width + drag}px, 0, 0)`,
+      transition: animating ? 'transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1)' : 'none',
+    },
+    moving: drag !== 0 || animating,
+    onSettled: () => setAnimating(false),
+  }
 }
 
 function ScoreStepper({ label, value, unit, onChange }: { label: string; value: number; unit: string; onChange: (delta: number) => void }) {
@@ -202,17 +376,23 @@ interface BattingCardProps {
   dispatch: (a: Action) => void
   names: Map<PlayerId, string>
   active: boolean
+  scrollToPlate: boolean
 }
 
-function BattingCard({ state, dispatch, names, active }: BattingCardProps) {
+function BattingCard({ state, dispatch, names, active, scrollToPlate }: BattingCardProps) {
   const { battingOrder, game } = state
   const listRef = useRef<HTMLOListElement>(null)
   const [onDeck, inTheHole] = battingFrom(battingOrder, game.atBat, 3).slice(1)
 
-  // Keep the batter at the plate in view as the order moves on.
+  // Centre the batter at the plate as the order moves on. Set scrollTop rather than
+  // calling scrollIntoView, which would also scroll the carousel sideways.
   useEffect(() => {
-    listRef.current?.querySelector('.at-bat')?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-  }, [game.atBat])
+    if (!scrollToPlate) return
+    const list = listRef.current
+    const row = list?.querySelector<HTMLElement>('.at-bat')
+    if (!list || !row) return
+    list.scrollTo({ top: row.offsetTop - list.clientHeight / 2 + row.offsetHeight / 2, behavior: 'smooth' })
+  }, [game.atBat, scrollToPlate])
 
   return (
     <section className={`gv-batting${active ? ' active' : ''}`}>
@@ -238,51 +418,6 @@ function BattingCard({ state, dispatch, names, active }: BattingCardProps) {
       </ol>
     </section>
   )
-}
-
-/**
- * Swipe left for the next half or period and right for the previous one, so a
- * coach can move the game on without aiming at anything.
- */
-function useSwipe(ref: React.RefObject<HTMLDivElement | null>, dispatch: (a: Action) => void): void {
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const MIN_X = 60
-    let x = 0
-    let y = 0
-    let startedAt = 0
-    let tracking = false
-
-    const start = (e: TouchEvent) => {
-      tracking = false
-      if (e.touches.length !== 1) return
-      // A sideways drag on the scoreboard is scrolling it, not a swipe.
-      if ((e.target as Element | null)?.closest('.scoreboard-wrap')) return
-      x = e.touches[0].clientX
-      y = e.touches[0].clientY
-      startedAt = Date.now()
-      tracking = true
-    }
-    const end = (e: TouchEvent) => {
-      if (!tracking) return
-      tracking = false
-      const touch = e.changedTouches[0]
-      if (!touch || Date.now() - startedAt > 800) return
-      const dx = touch.clientX - x
-      const dy = touch.clientY - y
-      // Mostly sideways, and far enough to not be a tap or a scroll.
-      if (Math.abs(dx) < MIN_X || Math.abs(dx) < Math.abs(dy) * 1.5) return
-      dispatch({ type: 'step-period', delta: dx < 0 ? 1 : -1 })
-    }
-
-    el.addEventListener('touchstart', start, { passive: true })
-    el.addEventListener('touchend', end, { passive: true })
-    return () => {
-      el.removeEventListener('touchstart', start)
-      el.removeEventListener('touchend', end)
-    }
-  }, [ref, dispatch])
 }
 
 /** Keep the screen awake while the view is open; harmless where unsupported. */

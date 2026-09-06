@@ -1,10 +1,48 @@
 import { describe, expect, it } from 'vitest'
-import { addScore, emptyGame, goToPeriod, normalizeGame, ordinal, periodStatus, setBatter, stepGame, totalScore, weAreBatting } from './game'
+import { addScore, emptyGame, goToPeriod, normalizeGame, ordinal, periodStatus, setBatter, slideAt, slideCount, slideOf, stepGame, totalScore, weAreBatting } from './game'
 import { coerceState, defaultState } from './storage'
 import { reducer } from '../state'
 import type { GameState } from './types'
 
 const game = (patch: Partial<GameState> = {}): GameState => ({ ...emptyGame(6), ...patch })
+
+describe('carousel slides', () => {
+  it('gives baseball two slides per inning and soccer one per period', () => {
+    expect(slideCount(6, true)).toBe(12)
+    expect(slideCount(4, false)).toBe(4)
+  })
+
+  it('numbers the half-innings from the top of the first', () => {
+    expect(slideOf(game({ period: 0, half: 'top' }), true)).toBe(0)
+    expect(slideOf(game({ period: 0, half: 'bottom' }), true)).toBe(1)
+    expect(slideOf(game({ period: 3, half: 'bottom' }), true)).toBe(7)
+    expect(slideOf(game({ period: 2 }), false)).toBe(2)
+  })
+
+  it('round-trips a slide back to its period and half', () => {
+    for (const [period, half] of [[0, 'top'], [0, 'bottom'], [5, 'top'], [5, 'bottom']] as const) {
+      const g = game({ period, half })
+      expect(slideAt(slideOf(g, true), true)).toEqual({ period, half })
+    }
+    expect(slideAt(3, false)).toEqual({ period: 3, half: 'top' })
+  })
+
+  it('never returns a slide before the start of the game', () => {
+    expect(slideAt(-4, true).period).toBe(0)
+    expect(slideAt(-1, false).period).toBe(0)
+    expect(slideCount(-2, true)).toBe(0)
+  })
+
+  it('walks the slides in the same order as stepping does', () => {
+    let g = game()
+    const walked = [slideOf(g, true)]
+    for (let i = 0; i < 4; i++) {
+      g = stepGame(g, 6, true, 1)
+      walked.push(slideOf(g, true))
+    }
+    expect(walked).toEqual([0, 1, 2, 3, 4])
+  })
+})
 
 describe('stepGame (what a swipe does)', () => {
   it('runs top to bottom to the next top', () => {

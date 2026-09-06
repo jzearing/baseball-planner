@@ -1018,21 +1018,41 @@ body.touch-drag-active {
   color: rgba(255, 255, 255, 0.25);
 }
 
-/* body: field beside the batting order */
-.gv-body {
+/* body: one slide per half-inning, dragged sideways */
+.gv-viewport {
   flex: 1 1 auto;
   min-height: 0;
+  overflow: hidden;
+}
+.gv-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+}
+.gv-slide {
+  /* Each slide is the full width of the viewport; the track overflows and is clipped. */
+  flex: 0 0 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0.6rem;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
-  /* Scroll inside the body rather than letting a tall field spill over the controls.
+  /* Scroll inside the slide rather than letting a tall field spill over the footer.
      "safe" keeps the top reachable: plain centring would push it past the scroll origin. */
   overflow-y: auto;
   align-content: safe center;
   justify-items: center;
 }
-.gv-body:has(.gv-batting) {
+.gv-slide:has(.gv-batting) {
   grid-template-columns: minmax(0, 1fr) minmax(11rem, 17rem);
+}
+/* A seam so a half-dragged pair reads as two screens rather than one jumble. It is
+   drawn only while the track is off its resting position, where it would otherwise
+   sit as a stray hairline down the edge of the viewport. */
+.gv-track[data-moving='true'] .gv-slide + .gv-slide {
+  border-left: 1px solid var(--gv-line);
 }
 .gv-field {
   display: flex;
@@ -1328,34 +1348,34 @@ body.touch-drag-active {
 }
 /* Phones: while we bat, the order takes the screen and reads from arm's length. */
 @media (max-width: 760px), (orientation: portrait) and (max-width: 1000px), (max-height: 500px) and (max-width: 950px) {
-  .gv-body[data-focus='batting'] {
+  .gv-slide[data-focus='batting'] {
     grid-template-columns: minmax(0, 1fr);
     align-content: stretch;
   }
-  .gv-body[data-focus='batting'] .gv-field {
+  .gv-slide[data-focus='batting'] .gv-field {
     display: none;
   }
-  .gv-body[data-focus='batting'] .gv-batting {
+  .gv-slide[data-focus='batting'] .gv-batting {
     height: 100%;
     /* Keeps the rows from stretching right across a landscape phone. */
     max-width: 32rem;
     margin: 0 auto;
   }
-  .gv-body[data-focus='batting'] .gv-order {
+  .gv-slide[data-focus='batting'] .gv-order {
     max-height: none;
     flex: 1 1 auto;
   }
-  .gv-body[data-focus='batting'] .gv-order button {
+  .gv-slide[data-focus='batting'] .gv-order button {
     font-size: clamp(1.1rem, 3.5vh, 1.4rem);
     padding: 0.55rem 0.7rem;
   }
-  .gv-body[data-focus='batting'] .gv-num {
+  .gv-slide[data-focus='batting'] .gv-num {
     width: 2rem;
   }
-  .gv-body[data-focus='batting'] .gv-tag {
+  .gv-slide[data-focus='batting'] .gv-tag {
     font-size: 0.8rem;
   }
-  .gv-body[data-focus='batting'] .gv-updeck {
+  .gv-slide[data-focus='batting'] .gv-updeck {
     font-size: 1.05rem;
   }
 }
@@ -1365,13 +1385,13 @@ body.touch-drag-active {
  * take turns: swiping through the game alternates between them.
  */
 @media (max-width: 760px), (orientation: portrait) and (max-width: 1000px) {
-  .gv-body:has(.gv-batting) {
+  .gv-slide:has(.gv-batting) {
     grid-template-columns: minmax(0, 1fr);
   }
   .gv-foot {
     display: none;
   }
-  .gv-body[data-focus='field'] .gv-batting {
+  .gv-slide[data-focus='field'] .gv-batting {
     display: none;
   }
 }
