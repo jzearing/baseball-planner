@@ -43,6 +43,23 @@ export function weAreBatting(homeAway: HomeAway, half: Half): boolean {
 }
 
 /**
+ * Game View lays the game out as one slide per half-inning (or per period, for a
+ * sport without halves), so these flatten (period, half) to a running index and back.
+ */
+export function slideCount(periodCount: number, hasHalves: boolean): number {
+  return Math.max(0, hasHalves ? periodCount * 2 : periodCount)
+}
+
+export function slideOf(game: GameState, hasHalves: boolean): number {
+  return hasHalves ? game.period * 2 + (game.half === 'bottom' ? 1 : 0) : game.period
+}
+
+export function slideAt(index: number, hasHalves: boolean): { period: number; half: Half } {
+  if (!hasHalves) return { period: Math.max(0, index), half: 'top' }
+  return { period: Math.max(0, Math.floor(index / 2)), half: index % 2 === 1 ? 'bottom' : 'top' }
+}
+
+/**
  * Step the game on by one half-inning (baseball) or one period (soccer) — what a
  * swipe does. Baseball runs top -> bottom -> next top; both stop at the ends.
  */

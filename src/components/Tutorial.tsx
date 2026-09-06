@@ -39,7 +39,7 @@ const STEPS: { title: string; body: string }[] = [
       'Fill in your team and the opponent under Game, then hit Game view for a full-screen dugout display: a scoreboard by ' +
       'inning or quarter, the field with every name in position, and big buttons to add runs or goals. ' +
       'Tap a box on the scoreboard to move the game to that inning or quarter — for baseball each row is one team, so tapping their ' +
-      'row picks the top half and yours the bottom — or just swipe sideways to move a half-inning on or back. For baseball, say whether ' +
+      'row picks the top half and yours the bottom — or drag sideways to pull the next half-inning into view and let go to move there. For baseball, say whether ' +
       'you are home or away and the batting order shows who is up; tap a name to put that batter at the plate. On a phone the field and ' +
       'the batting order take turns, whichever the half is about. The score is saved as you go, so you can lock the screen and come back.',
   },
