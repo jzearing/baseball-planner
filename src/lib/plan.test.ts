@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { columnList, moveItem, normalizeInning, shuffleBattingOrder, swapAcrossInnings, swapItems, writeColumn } from './plan'
+import { activePlayers, benchRowCount, benchSize, columnList, moveItem, normalizeInning, shuffleBattingOrder, swapAcrossInnings, swapItems, writeColumn } from './plan'
 import { seededRng } from './rng'
 import { coerceState, defaultState } from './storage'
-import type { Inning, Player } from './types'
+import type { AppState, Inning, Player, PlayerId } from './types'
+import { reducer } from '../state'
+import { solvePlan } from './solver'
 
 const players: Player[] = ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id, name: id.toUpperCase(), active: true }))
 const positions = ['P', 'C', '1B']
@@ -100,5 +102,72 @@ describe('columnList / writeColumn', () => {
     const next = writeColumn(inn, positions, moveItem(list, 4, 0))
     expect(next.positions).toEqual({ P: 'e', C: 'a', '1B': 'b' })
     expect(next.bench).toEqual(['c', 'd'])
+  })
+})
+
+/**
+ * Marking a player absent used to pull a different player out of the lineup.
+ *
+ * The absent player's fielding slot is vacated rather than backfilled, so the
+ * inning sits one more player than `activePlayers - positions` — but the grid
+ * drew only that many bench rows, so the extra one was not shown. A coach then
+ * saw the wrong name missing, and the next drag in that inning wrote the column
+ * back from what the grid showed, deleting the hidden player for real.
+ */
+describe('marking a fielder absent', () => {
+  function solved(playerCount: number): AppState {
+    let s = defaultState('baseball')
+    s = reducer(s, { type: 'add-players', names: Array.from({ length: playerCount }, (_, i) => `P${i}`) })
+    return { ...s, plan: solvePlan(s, { keepFixed: false }) }
+  }
+
+  function inInning(state: AppState, inning: number): PlayerId[] {
+    const inn = state.plan[inning]
+    return [...Object.values(inn.positions).filter((x): x is PlayerId => !!x), ...inn.bench]
+  }
+
+  it('leaves every remaining player visible in the grid', () => {
+    const before = solved(10)
+    const absent = before.plan[0].positions[before.positions[0]]
+    expect(absent).toBeTruthy()
+
+    const after = reducer(before, { type: 'toggle-player-active', id: absent! })
+    const rows = benchRowCount(after)
+    const shown = columnList(after.plan[0], after.positions, rows).filter(Boolean)
+
+    // One more row than the arithmetic, because a fielding slot is now empty.
+    expect(rows).toBe(benchSize(after) + 1)
+    for (const player of activePlayers(after)) expect(shown).toContain(player.id)
+    expect(shown).not.toContain(absent)
+  })
+
+  it('vacates only that slot and moves nobody else', () => {
+    const before = solved(10)
+    const position = before.positions[0]
+    const absent = before.plan[0].positions[position]!
+
+    const after = reducer(before, { type: 'toggle-player-active', id: absent })
+    expect(after.plan[0].positions[position]).toBeNull()
+    for (const pos of after.positions.slice(1)) {
+      expect(after.plan[0].positions[pos]).toBe(before.plan[0].positions[pos])
+    }
+  })
+
+  it('keeps everyone through a later drag in that inning', () => {
+    const before = solved(10)
+    const absent = before.plan[0].positions[before.positions[0]]!
+    const after = reducer(before, { type: 'toggle-player-active', id: absent })
+
+    const dragged = reducer(after, { type: 'swap-cell', inning: 0, a: 1, b: 2 })
+    expect(inInning(dragged, 0).sort()).toEqual(inInning(after, 0).sort())
+  })
+})
+
+describe('writeColumn', () => {
+  // Belt and braces for the bug above: a short list must not lose a player.
+  it('re-benches a player the list leaves out rather than dropping them', () => {
+    const inn: Inning = { positions: { P: 'a', C: 'b', '1B': 'c' }, bench: ['d', 'e'], fixed: [] }
+    const next = writeColumn(inn, positions, ['a', 'b', 'c', 'd'])
+    expect(next.bench).toEqual(['d', 'e'])
   })
 })
