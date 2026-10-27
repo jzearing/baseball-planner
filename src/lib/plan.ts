@@ -13,9 +13,23 @@ export function emptyInning(positions: PositionId[], players: Player[]): Inning 
   return { positions: pos, bench: players.map((p) => p.id), fixed: [] }
 }
 
-/** Number of bench rows shown under the positions. */
-export function benchRowCount(state: Pick<AppState, 'players' | 'positions'>): number {
+/** How many players sit when every fielding position is filled. */
+export function benchSize(state: Pick<AppState, 'players' | 'positions'>): number {
   return Math.max(0, activePlayers(state).length - state.positions.length)
+}
+
+/**
+ * Number of bench rows the grid must draw.
+ *
+ * Usually that is benchSize, but an inning with an empty fielding slot sits one
+ * extra player, and a bench row that is not drawn hides whoever is in it — so
+ * the count has to follow the plan, not just the arithmetic. A slot falls empty
+ * when a player is marked absent (their position is vacated and everyone else
+ * stays put) or when a coach drags someone out of one and leaves it open.
+ */
+export function benchRowCount(state: Pick<AppState, 'players' | 'positions' | 'plan'>): number {
+  const longest = state.plan.reduce((most, inn) => Math.max(most, inn.bench.length), 0)
+  return Math.max(benchSize(state), longest)
 }
 
 /** Where a player is in an inning: a position id, BENCH, or undefined if absent. */
@@ -105,6 +119,14 @@ export function writeColumn(inning: Inning, positions: PositionId[], list: (Play
     pos[p] = list[i] ?? null
   })
   const bench = list.slice(positions.length).filter((x): x is PlayerId => x !== null)
+  // Every caller hands back a permutation of columnList, so nothing should be
+  // missing from it. Re-benching anyone the list does not mention means a short
+  // list can never quietly drop a player out of the inning, which is the one
+  // mistake here a coach would not notice until a parent asked why their kid
+  // was not on the sheet.
+  const placed = new Set(bench)
+  for (const pid of Object.values(pos)) if (pid) placed.add(pid)
+  for (const pid of slotLookup(inning).keys()) if (!placed.has(pid)) bench.push(pid)
   return { positions: pos, bench, fixed: inning.fixed }
 }
 

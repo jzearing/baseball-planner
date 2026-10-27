@@ -1,5 +1,5 @@
 import type { AppState, HomeAway } from '../lib/types'
-import { benchRowCount } from '../lib/plan'
+import { benchSize } from '../lib/plan'
 import { catalogFor, periodNoun, SPORTS, sportDef, type Sport } from '../lib/positions'
 import type { Action } from '../state'
 
@@ -136,7 +136,7 @@ export function SettingsPanel({ state, dispatch }: Props) {
           ))}
         </div>
         <small className="muted">
-          {state.positions.length} on the field, {benchRowCount(state)} on the bench each {period.singular}
+          {state.positions.length} on the field, {benchSize(state)} on the bench each {period.singular}
         </small>
       </div>
     </section>
